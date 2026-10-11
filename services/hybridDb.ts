@@ -113,8 +113,11 @@ export async function saveTrackDb(track: ITrack): Promise<boolean> {
 export async function replaceMusicDb(tracks: ITrack[]): Promise<boolean> {
   if (isSupabaseConfigured && supabase) {
     try {
-      // Upsert danh sách mới
-      await supabase.from('music').upsert(tracks, { onConflict: 'id' });
+      // Xóa tất cả các bài hiện có trên Supabase rồi nạp lại danh sách mới nhất
+      await supabase.from('music').delete().neq('id', '___non_existent___');
+      if (tracks.length > 0) {
+        await supabase.from('music').insert(tracks);
+      }
     } catch (e) {
       console.warn('Supabase replace music error:', e);
     }
