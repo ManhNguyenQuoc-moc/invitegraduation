@@ -31,8 +31,9 @@ export async function POST(req: NextRequest) {
       .replace(/[^a-z0-9_-]/g, '-');
     
     const fileName = `${baseName}-${Date.now()}${ext}`;
+    const cleanTitle = file.name.replace(/\.[^/.]+$/, '');
 
-    // Kiểm tra nếu có Supabase Storage (Ưu tiên lưu đám mây khi chạy trên Vercel)
+    // 1. Thử tải lên Supabase Storage nếu có bucket 'music'
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
@@ -41,7 +42,6 @@ export async function POST(req: NextRequest) {
         const { createClient } = await import('@supabase/supabase-js');
         const supabase = createClient(supabaseUrl, supabaseKey);
 
-        // Upload vào bucket 'music'
         const { error: uploadError } = await supabase.storage
           .from('music')
           .upload(fileName, buffer, {
@@ -55,35 +55,54 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({
               success: true,
               url: publicData.publicUrl,
-              fileName: file.name.replace(/\.[^/.]+$/, ''),
+              fileName: cleanTitle,
               message: 'Tải file lên đám mây Supabase thành công!'
             });
           }
+        } else {
+          console.warn('Supabase storage upload error:', uploadError.message);
         }
       } catch (storageErr) {
-        console.warn('Lỗi upload qua Supabase Storage, chuyển sang lưu public local:', storageErr);
+        console.warn('Lỗi Supabase Storage:', storageErr);
       }
     }
 
-    // Fallback lưu local trong public/music khi chạy local
-    const targetDir = path.join(process.cwd(), 'public', 'music');
-    if (!fs.existsSync(targetDir)) {
-      fs.mkdirSync(targetDir, { recursive: true });
+    // 2. Thử ghi vào public/music (hoạt động khi chạy local server)
+    try {
+      const targetDir = path.join(process.cwd(), 'public', 'music');
+      if (!fs.existsSync(targetDir)) {
+        fs.mkdirSync(targetDir, { recursive: true });
+      }
+
+      const filePath = path.join(targetDir, fileName);
+      fs.writeFileSync(filePath, buffer);
+
+      return NextResponse.json({
+        success: true,
+        url: `/music/${fileName}`,
+        fileName: cleanTitle,
+        message: 'Tải file thành công vào thư mục public/music!'
+      });
+    } catch (fsErr) {
+      console.warn('Không thể ghi file cục bộ (môi trường serverless Vercel):', fsErr);
     }
 
-    const filePath = path.join(targetDir, fileName);
-    fs.writeFileSync(filePath, buffer);
-
-    const publicUrl = `/music/${fileName}`;
+    // 3. Fallback cho Vercel serverless: Chuyển file thành Base64 Data URI
+    // Trình duyệt có thể phát trực tiếp thẻ audio src="data:audio/mp3;base64,..."
+    const mimeType = file.type || 'audio/mpeg';
+    const base64Audio = `data:${mimeType};base64,${buffer.toString('base64')}`;
 
     return NextResponse.json({
       success: true,
-      url: publicUrl,
-      fileName: file.name.replace(/\.[^/.]+$/, ''),
-      message: 'Tải file thành công vào public/music!'
+      url: base64Audio,
+      fileName: cleanTitle,
+      message: 'Đã mã hóa và tải file nhạc thành công lên hệ thống!'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Lỗi khi tải file nhạc:', error);
-    return NextResponse.json({ success: false, message: 'Lỗi khi lưu file lên máy chủ' }, { status: 500 });
+    return NextResponse.json({ 
+      success: false, 
+      message: error?.message || 'Lỗi khi xử lý file tải lên' 
+    }, { status: 500 });
   }
 }

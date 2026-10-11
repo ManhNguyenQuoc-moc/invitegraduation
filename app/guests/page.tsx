@@ -178,10 +178,11 @@ export default function GuestManagementPage() {
 
     if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|wav|m4a|ogg|aac)$/i)) {
       message.error('Vui lòng chọn file âm thanh định dạng hợp lệ (.mp3, .wav, .m4a, .ogg)!');
+      e.target.value = '';
       return;
     }
 
-    const hideLoading = message.loading(`Đang tải file "${file.name}" vào public/music...`, 0);
+    const hideLoading = message.loading(`Đang tải file "${file.name}" lên hệ thống...`, 0);
 
     try {
       const formData = new FormData();
@@ -195,26 +196,28 @@ export default function GuestManagementPage() {
       const result = await res.json();
       hideLoading();
 
-      if (res.ok && result.success) {
+      if (res.ok && result.success && result.url) {
         const trackItem: ITrack = {
           id: 'uploaded-' + Date.now(),
           title: result.fileName || file.name.replace(/\.[^/.]+$/, ''),
           artist: 'Nhạc Tải Lên',
-          url: result.url, // Link dạng /music/ten-bai-hat.mp3 lưu trực tiếp trong thư mục public
-          tag: 'Tệp Public',
+          url: result.url,
+          tag: 'Tệp Tải Lên',
           isCustom: true
         };
         const updated = [trackItem, ...playlist];
         setPlaylist(updated);
         saveActivePlaylist(updated, true);
-        message.success(`Đã lưu "${trackItem.title}" vào public/music và data/music.json thành công!`);
+        message.success(`Đã lưu "${trackItem.title}" vào danh sách phát thành công!`);
       } else {
         message.error(result.message || 'Lỗi khi tải file nhạc lên máy chủ');
       }
-    } catch (err) {
+    } catch (err: any) {
       hideLoading();
       console.error('Lỗi upload file:', err);
-      message.error('Không thể kết nối đến máy chủ để tải file');
+      message.error(err?.message || 'Không thể kết nối đến máy chủ để tải file');
+    } finally {
+      e.target.value = '';
     }
   };
 
