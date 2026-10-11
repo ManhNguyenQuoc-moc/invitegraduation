@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readJsonFile, writeJsonFile } from '@/services/jsonDb';
+import { getGuestsDb } from '@/services/hybridDb';
 import { IGuestItem } from '@/types/guest.dto';
 import eventFallback from '@/data/event.json';
 import { IInvitationDTO } from '@/types/invitation.dto';
 
-const FILE_NAME = 'guests.json';
-
-// GET: Lấy thông tin thiệp mời theo slug từ file guests.json
+// GET: Lấy thông tin thiệp mời theo slug từ DB
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  const guests = readJsonFile<IGuestItem[]>(FILE_NAME, []);
+  const guests = await getGuestsDb();
   
   const found = guests.find((g) => g.slug === slug);
   const guestName = found ? found.name : (slug ? 'Quý Bạn & Anh Chị' : 'Quý Bạn & Anh Chị');

@@ -1,23 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readJsonFile, writeJsonFile } from '@/services/jsonDb';
+import { getMusicDb, saveTrackDb, replaceMusicDb, deleteTrackDb } from '@/services/hybridDb';
 import { ITrack } from '@/data/musicPlaylist';
 
-const FILE_NAME = 'music.json';
-
-// GET: Lấy toàn bộ danh sách nhạc nền từ data/music.json
+// GET: Lấy toàn bộ danh sách nhạc nền từ DB
 export async function GET() {
-  const tracks = readJsonFile<ITrack[]>(FILE_NAME, []);
+  const tracks = await getMusicDb();
   return NextResponse.json({ success: true, data: tracks });
 }
 
-// POST: Thêm 1 bài hát mới vào danh sách phát
+// POST: Thêm 1 bài hát mới hoặc ghi đè danh sách phát
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const tracks = readJsonFile<ITrack[]>(FILE_NAME, []);
 
     if (Array.isArray(body)) {
-      writeJsonFile(FILE_NAME, body);
+      await replaceMusicDb(body);
       return NextResponse.json({ success: true, data: body, message: 'Đã cập nhật danh sách bài hát!' });
     }
 
@@ -34,20 +31,19 @@ export async function POST(req: NextRequest) {
       isCustom: true,
     };
 
-    const updated = [newTrack, ...tracks];
-    writeJsonFile(FILE_NAME, updated);
+    await saveTrackDb(newTrack);
 
     return NextResponse.json({
       success: true,
       data: newTrack,
-      message: 'Đã thêm bài hát vào danh sách phát và lưu vào data/music.json!'
+      message: 'Đã thêm bài hát vào danh sách phát thành công!'
     });
   } catch (error) {
     return NextResponse.json({ success: false, message: 'Lỗi máy chủ khi thêm nhạc' }, { status: 500 });
   }
 }
 
-// DELETE: Xóa bài hát khỏi file JSON theo id
+// DELETE: Xóa bài hát khỏi DB theo id
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -66,15 +62,13 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, message: 'Thiếu ID bài hát cần xóa' }, { status: 400 });
     }
 
-    const tracks = readJsonFile<ITrack[]>(FILE_NAME, []);
-    const filtered = tracks.filter((t) => t.id !== id);
-
-    writeJsonFile(FILE_NAME, filtered);
+    await deleteTrackDb(id);
+    const updated = await getMusicDb();
 
     return NextResponse.json({
       success: true,
-      data: filtered,
-      message: 'Đã xóa bài hát khỏi data/music.json!'
+      data: updated,
+      message: 'Đã xóa bài hát thành công!'
     });
   } catch (error) {
     return NextResponse.json({ success: false, message: 'Lỗi khi xóa bài hát' }, { status: 500 });
