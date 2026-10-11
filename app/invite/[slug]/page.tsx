@@ -305,23 +305,27 @@ export default function InvitationPage() {
         placement="bottom"
         open={isVenueDrawerOpen}
         onClose={() => setIsVenueDrawerOpen(false)}
+        height="85vh"
+        style={{ height: "85vh" }}
         closable={false}
-        className="venue-info-drawer"
-        style={{ height: "88vh" }}
         styles={{
-          body: {
-            backgroundColor: "#030A16",
-            padding: "0 16px env(safe-area-inset-bottom, 24px) 16px",
-            color: "#FFFFFF",
-            overflowY: "auto",
-            overscrollBehavior: "contain"
+          wrapper: {
+            height: "85vh",
+            maxHeight: "85vh",
           },
           section: {
+            height: "100%",
             borderTopLeftRadius: "28px",
             borderTopRightRadius: "28px",
             backgroundColor: "#030A16",
-            borderTop: "1px solid rgba(56, 189, 248, 0.35)",
-            maxHeight: "88vh"
+            borderTop: "1px solid rgba(56, 189, 248, 0.3)"
+          },
+          body: {
+            backgroundColor: "#030A16",
+            padding: "0 16px 24px 16px",
+            color: "#FFFFFF",
+            overflowY: "auto",
+            height: "calc(100% - 60px)"
           }
         }}
       >
