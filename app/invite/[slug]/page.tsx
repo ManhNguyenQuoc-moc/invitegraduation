@@ -33,9 +33,9 @@ export default function InvitationPage() {
   const params = useParams();
   const slug = (params?.slug as string) || "";
 
-  // Data State - Khởi tạo ngay với mock data theo slug để hiển thị tức thì, sau đó sync ngầm từ API
+  // Data State
   const [invitationData, setInvitationData] = useState<IInvitationDTO>(() => getMockInvitationData(slug));
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Audio State & Dynamic Playlist
   const [playlist, setPlaylist] = useState<ITrack[]>(PLAYLIST);
@@ -44,20 +44,61 @@ export default function InvitationPage() {
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Tải danh sách playlist từ data/music.json (hoặc LocalStorage fallback)
+  // Preload Logo và tải dữ liệu: Đảm bảo Logo sẵn sàng trong bộ nhớ cache rồi mới tắt loading
+  useEffect(() => {
+    let isMounted = true;
+
+    const preparePage = async () => {
+      // 1. Preload ảnh Logo hình con sói ngay lập tức
+      const imgPromise = new Promise((resolve) => {
+        const img = new Image();
+        img.src = "/wolf-logo-emblem.png";
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(true);
+      });
+
+      // 2. Tải dữ liệu thiệp mời & danh sách nhạc đồng thời
+      const dataPromise = invitationService.getInvitationBySlug(slug).catch(() => null);
+      const musicPromise = fetchPlaylistFromDb().catch(() => []);
+
+      // 3. Giữ màn hình loading tối thiểu 800ms để người dùng cảm nhận hiệu ứng heartbeat sang trọng
+      const minDelayPromise = new Promise((r) => setTimeout(r, 850));
+
+      const [, fetchedData, activeMusic] = await Promise.all([
+        imgPromise,
+        dataPromise,
+        musicPromise,
+        minDelayPromise,
+      ]);
+
+      if (!isMounted) return;
+
+      if (fetchedData) {
+        setInvitationData(fetchedData);
+      }
+      if (activeMusic && activeMusic.length > 0) {
+        setPlaylist(activeMusic);
+        setCurrentTrack(activeMusic[0]);
+      }
+
+      setLoading(false);
+    };
+
+    preparePage();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [slug]);
+
+  // Lắng nghe cập nhật playlist nếu có
   useEffect(() => {
     const updateTracks = async () => {
       const active = await fetchPlaylistFromDb();
-      setPlaylist(active);
       if (active.length > 0) {
-        setCurrentTrack((prev) => {
-          const exists = active.find((t) => t.id === prev.id);
-          return exists || active[0];
-        });
+        setPlaylist(active);
       }
     };
-
-    updateTracks();
     window.addEventListener("playlist_updated", updateTracks);
     return () => window.removeEventListener("playlist_updated", updateTracks);
   }, []);
@@ -70,22 +111,6 @@ export default function InvitationPage() {
 
   // Wishes state (Sổ lưu bút)
   const [wishes, setWishes] = useState<IWishDTO[]>(INITIAL_MOCK_WISHES);
-
-  // Fetch invitation data from service
-  useEffect(() => {
-    loadInvitationData();
-  }, [slug]);
-
-  const loadInvitationData = async () => {
-    try {
-      const data = await invitationService.getInvitationBySlug(slug);
-      if (data) {
-        setInvitationData(data);
-      }
-    } catch (err: any) {
-      console.warn("Lỗi đồng bộ dữ liệu thiệp:", err);
-    }
-  };
 
   // Audio handler
   const toggleAudio = () => {
