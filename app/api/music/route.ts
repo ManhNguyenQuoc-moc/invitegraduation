@@ -51,7 +51,16 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
+    let id = searchParams.get('id');
+
+    if (!id) {
+      try {
+        const body = await req.json();
+        id = body?.id;
+      } catch {
+        // không có json body
+      }
+    }
 
     if (!id) {
       return NextResponse.json({ success: false, message: 'Thiếu ID bài hát cần xóa' }, { status: 400 });

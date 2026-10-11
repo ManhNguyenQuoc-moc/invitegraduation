@@ -130,10 +130,35 @@ export default function GuestManagementPage() {
   };
 
   const handleDeleteTrack = async (id: string) => {
-    const updated = playlist.filter((t) => t.id !== id);
-    setPlaylist(updated);
-    saveActivePlaylist(updated, true);
-    message.success('Đã xóa bài hát khỏi data/music.json!');
+    try {
+      const updated = playlist.filter((t) => t.id !== id);
+      setPlaylist(updated);
+      saveActivePlaylist(updated, false); // Lưu LocalStorage và dispatch event
+
+      if (previewTrackUrl && playlist.find((t) => t.id === id)?.url === previewTrackUrl) {
+        setPreviewTrackUrl(null);
+      }
+
+      // Gọi API DELETE để xóa trực tiếp khỏi data/music.json
+      const res = await fetch(`/api/music?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        message.success('Đã xóa bài hát khỏi danh sách và file data/music.json!');
+      } else {
+        // Fallback ghi đè cả mảng
+        await fetch('/api/music', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated),
+        });
+        message.success('Đã cập nhật danh sách bài hát!');
+      }
+    } catch (err) {
+      console.error('Lỗi khi xóa bài hát:', err);
+      message.error('Không thể kết nối đến máy chủ để xóa bài hát');
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
