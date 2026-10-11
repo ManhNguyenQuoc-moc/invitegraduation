@@ -44,28 +44,56 @@ export default function InvitationPage() {
   const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Preload Logo và tải dữ liệu: Đảm bảo Logo sẵn sàng trong bộ nhớ cache rồi mới tắt loading
+  // Danh sách các tài nguyên hình ảnh quan trọng nhất của trang thiệp mời
+  const CRITICAL_IMAGES = [
+    "/wolf-logo-emblem.png",
+    "/22.07 (3-clean).png",
+    "/22.07 (5).png",
+    "/22.07 (text).png",
+    "/22.07 (text2).png",
+    "/22.07 (1).png",
+    "/22.07 (2).png",
+    "/22.07 (4).png",
+    "/green-train-clean-full.png",
+    "/glenfinnan-viaduct-bg.jpg",
+    "/sticker-crown.png",
+    "/sticker-sparkle.png",
+    "/sticker-burst.png",
+    "/sticker-stars.png",
+    "/sticker-sparkle-gold.png",
+    "/train-clean-transparent.png?v=2"
+  ];
+
+  // Preload toàn bộ hình ảnh & dữ liệu: Đảm bảo TẤT CẢ ảnh được tải xong 100% vào bộ nhớ cache trước khi chuyển màn hình
   useEffect(() => {
     let isMounted = true;
 
-    const preparePage = async () => {
-      // 1. Preload ảnh Logo hình con sói ngay lập tức
-      const imgPromise = new Promise((resolve) => {
+    const preloadSingleImage = (src: string): Promise<boolean> => {
+      return new Promise((resolve) => {
         const img = new Image();
-        img.src = "/wolf-logo-emblem.png";
-        img.onload = () => resolve(true);
-        img.onerror = () => resolve(true);
+        img.src = src;
+        if (img.complete) {
+          resolve(true);
+        } else {
+          img.onload = () => resolve(true);
+          img.onerror = () => resolve(false); // Tránh bị treo nếu 1 ảnh phụ bị lỗi mạng
+        }
       });
+    };
+
+    const preparePage = async () => {
+      // 1. Preload song song toàn bộ ảnh quan trọng của Hero & Poster Card
+      const imagesPromise = Promise.all(CRITICAL_IMAGES.map(preloadSingleImage));
 
       // 2. Tải dữ liệu thiệp mời & danh sách nhạc đồng thời
       const dataPromise = invitationService.getInvitationBySlug(slug).catch(() => null);
       const musicPromise = fetchPlaylistFromDb().catch(() => []);
 
-      // 3. Giữ màn hình loading tối thiểu 800ms để người dùng cảm nhận hiệu ứng heartbeat sang trọng
-      const minDelayPromise = new Promise((r) => setTimeout(r, 850));
+      // 3. Thời gian tối thiểu 900ms để hiệu ứng nhịp tim hiển thị mượt mà không bị giật
+      const minDelayPromise = new Promise((r) => setTimeout(r, 900));
 
       const [, fetchedData, activeMusic] = await Promise.all([
-        imgPromise,
+        imagesPromise,
         dataPromise,
         musicPromise,
         minDelayPromise,
