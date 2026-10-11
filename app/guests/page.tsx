@@ -37,7 +37,10 @@ import {
   Plus,
   Pencil,
   Edit,
-  Save
+  Save,
+  Send,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import { ITrack, getActivePlaylist, saveActivePlaylist, fetchPlaylistFromDb } from '@/data/musicPlaylist';
 import * as XLSX from 'xlsx';
@@ -51,6 +54,7 @@ export interface IGuestItem {
   status: 'confirmed' | 'pending' | 'declined';
   attendingCount: number;
   wishesCount: number;
+  isSent?: boolean;
 }
 
 export default function GuestManagementPage() {
@@ -62,6 +66,7 @@ export default function GuestManagementPage() {
   const [isLoadingGuests, setIsLoadingGuests] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
+  const [selectedSentFilter, setSelectedSentFilter] = useState<'all' | 'sent' | 'unsent'>('all');
   
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -514,18 +519,51 @@ export default function GuestManagementPage() {
     }
   };
 
+  // BẬT / TẮT ĐÁNH DẤU ĐÃ GỬI THIỆP (LƯU DB & SUPABASE)
+  const handleToggleSent = async (guest: IGuestItem, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    const newStatus = !guest.isSent;
+    const updatedGuest: IGuestItem = { ...guest, isSent: newStatus };
+
+    // Cập nhật UI ngay lập tức (optimistic UI)
+    setGuests(guests.map((g) => (g.id === guest.id ? updatedGuest : g)));
+
+    try {
+      const res = await fetch('/api/guests', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedGuest),
+      });
+      const result = await res.json();
+      if (result.success) {
+        message.success(newStatus ? `Đã đánh dấu đã gửi thiệp cho ${guest.name}` : `Đã bỏ đánh dấu gửi thiệp cho ${guest.name}`);
+      }
+    } catch (err) {
+      console.warn('Lỗi lưu trạng thái đã gửi lên server:', err);
+      message.info(newStatus ? `Đã đánh dấu gửi thiệp cho ${guest.name}` : `Đã hủy đánh dấu gửi`);
+    }
+  };
+
   // Filtered list
   const filteredGuests = guests.filter(g => {
     const matchQuery = g.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                        g.slug.toLowerCase().includes(searchQuery.toLowerCase()) ||
                        g.phone.includes(searchQuery);
     const matchGroup = selectedGroup === 'all' || g.group === selectedGroup;
-    return matchQuery && matchGroup;
+    const matchSent = selectedSentFilter === 'all' 
+      ? true 
+      : selectedSentFilter === 'sent' 
+        ? Boolean(g.isSent) 
+        : !g.isSent;
+    return matchQuery && matchGroup && matchSent;
   });
 
   const confirmedCount = guests.filter(g => g.status === 'confirmed').length;
   const pendingCount = guests.filter(g => g.status === 'pending').length;
   const declinedCount = guests.filter(g => g.status === 'declined').length;
+  const sentCount = guests.filter(g => Boolean(g.isSent)).length;
 
   if (checkingAuth) {
     return (
@@ -602,11 +640,19 @@ export default function GuestManagementPage() {
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
             <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Tổng Khách Mời</div>
             <div className="text-2xl font-bold text-white mt-1">{guests.length}</div>
             <div className="text-xs text-blue-400 mt-1 font-medium">Đã phát hành link thiệp</div>
+          </div>
+
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
+            <div className="text-indigo-400 text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
+              <Send className="w-3.5 h-3.5" /> Đã Gửi Thiệp
+            </div>
+            <div className="text-2xl font-bold text-indigo-300 mt-1">{sentCount} / {guests.length}</div>
+            <div className="text-xs text-slate-400 mt-1">Đã tick gửi đến khách</div>
           </div>
 
           <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 shadow-sm">
@@ -636,32 +682,73 @@ export default function GuestManagementPage() {
 
         {/* Filter & Search Bar */}
         <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row gap-4 justify-between items-center">
-          <div className="relative w-full md:w-96">
+          <div className="relative w-full md:w-80">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Tìm theo tên, số điện thoại, slug thiệp..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
+              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-blue-500"
             />
           </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <span className="text-xs font-medium text-slate-400 hidden sm:inline">Lọc theo nhóm:</span>
-            <select
-              value={selectedGroup}
-              onChange={(e) => setSelectedGroup(e.target.value)}
-              className="bg-slate-950 border border-slate-800 text-slate-200 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-500"
-            >
-              <option value="all">Tất cả các nhóm</option>
-              <option value="Bạn Bè Đồng Môn">Bạn Bè Đồng Môn</option>
-              <option value="Bạn Bè">Bạn Bè</option>
-              <option value="Người Thân">Người Thân</option>
-              <option value="Đồng Nghiệp">Đồng Nghiệp</option>
-              <option value="Giảng Viên Hướng Dẫn">Giảng Viên Hướng Dẫn</option>
-              <option value="Khách Quý VIP">Khách Quý VIP</option>
-            </select>
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            {/* Lọc Trạng Thái Gửi Thiệp */}
+            <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+              <button
+                type="button"
+                onClick={() => setSelectedSentFilter('all')}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                  selectedSentFilter === 'all'
+                    ? 'bg-slate-800 text-white font-semibold shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Tất cả ({guests.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedSentFilter('sent')}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                  selectedSentFilter === 'sent'
+                    ? 'bg-indigo-600/40 text-indigo-200 border border-indigo-500/50 font-semibold shadow-sm'
+                    : 'text-slate-400 hover:text-indigo-300'
+                }`}
+              >
+                <CheckSquare className="w-3.5 h-3.5 text-indigo-400" />
+                Đã gửi ({sentCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedSentFilter('unsent')}
+                className={`px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                  selectedSentFilter === 'unsent'
+                    ? 'bg-amber-600/30 text-amber-200 border border-amber-500/40 font-semibold shadow-sm'
+                    : 'text-slate-400 hover:text-amber-300'
+                }`}
+              >
+                <Square className="w-3.5 h-3.5 text-amber-400" />
+                Chưa gửi ({guests.length - sentCount})
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-slate-400 hidden sm:inline">Nhóm:</span>
+              <select
+                value={selectedGroup}
+                onChange={(e) => setSelectedGroup(e.target.value)}
+                className="bg-slate-950 border border-slate-800 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500"
+              >
+                <option value="all">Tất cả các nhóm</option>
+                <option value="Bạn Bè Đồng Môn">Bạn Bè Đồng Môn</option>
+                <option value="Bạn Bè">Bạn Bè</option>
+                <option value="Người Thân">Người Thân</option>
+                <option value="Đồng Nghiệp">Đồng Nghiệp</option>
+                <option value="Giảng Viên Hướng Dẫn">Giảng Viên Hướng Dẫn</option>
+                <option value="Khách Quý VIP">Khách Quý VIP</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -671,6 +758,7 @@ export default function GuestManagementPage() {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-950/70 text-slate-400 text-xs font-semibold uppercase tracking-wider border-b border-slate-800">
                 <tr>
+                  <th className="py-3.5 px-3 text-center w-28">Đã Gửi Thiệp</th>
                   <th className="py-3.5 px-4">Tên Khách Mời</th>
                   <th className="py-3.5 px-4">Số Điện Thoại</th>
                   <th className="py-3.5 px-4">Nhóm Phân Loại</th>
@@ -682,7 +770,7 @@ export default function GuestManagementPage() {
               <tbody className="divide-y divide-slate-800/60">
                 {filteredGuests.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-slate-500">
+                    <td colSpan={7} className="py-12 text-center text-slate-500">
                       Không tìm thấy khách mời nào phù hợp.
                     </td>
                   </tr>
@@ -690,14 +778,54 @@ export default function GuestManagementPage() {
                   filteredGuests.map((guest) => {
                     const inviteUrl = `/invite/${guest.slug}`;
                     return (
-                      <tr key={guest.id} className="hover:bg-slate-800/40 transition-colors">
+                      <tr 
+                        key={guest.id} 
+                        className={`transition-colors ${
+                          guest.isSent 
+                            ? 'bg-slate-900/40 hover:bg-slate-800/50' 
+                            : 'hover:bg-slate-800/40'
+                        }`}
+                      >
+                        {/* CỘT ĐÁNH DẤU ĐÃ GỬI THIỆP */}
+                        <td className="py-4 px-3 text-center">
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleSent(guest, e)}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-medium transition-all cursor-pointer border ${
+                              guest.isSent
+                                ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40 hover:bg-indigo-500/30 shadow-sm'
+                                : 'bg-slate-800/60 text-slate-400 border-slate-700/60 hover:bg-slate-800 hover:text-slate-200'
+                            }`}
+                            title={guest.isSent ? 'Nhấn để bỏ đánh dấu' : 'Nhấn để đánh dấu đã gửi thiệp'}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={Boolean(guest.isSent)}
+                              onChange={() => {}} // Đã xử lý ở onClick button
+                              className="w-3.5 h-3.5 rounded accent-indigo-500 cursor-pointer pointer-events-none"
+                            />
+                            <span className="text-[11px] font-semibold">
+                              {guest.isSent ? 'Đã gửi' : 'Chưa gửi'}
+                            </span>
+                          </button>
+                        </td>
+
                         <td className="py-4 px-4 font-semibold text-white">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-blue-600/20 text-blue-400 font-bold flex items-center justify-center text-xs">
+                            <div className={`w-8 h-8 rounded-full font-bold flex items-center justify-center text-xs ${
+                              guest.isSent 
+                                ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/30' 
+                                : 'bg-blue-600/20 text-blue-400'
+                            }`}>
                               {guest.name.charAt(0)}
                             </div>
                             <div>
-                              <div>{guest.name}</div>
+                              <div className="flex items-center gap-1.5">
+                                <span>{guest.name}</span>
+                                {guest.isSent && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" title="Đã gửi thiệp" />
+                                )}
+                              </div>
                               <div className="text-xs font-normal text-slate-400 font-mono">slug: {guest.slug}</div>
                             </div>
                           </div>
@@ -935,6 +1063,22 @@ export default function GuestManagementPage() {
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-sky-500"
                   />
                 </div>
+              </div>
+
+              {/* Tùy chọn đánh dấu đã gửi thiệp */}
+              <div className="pt-1">
+                <label className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-slate-700 cursor-pointer transition-all">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(editingGuest.isSent)}
+                    onChange={(e) => setEditingGuest({ ...editingGuest, isSent: e.target.checked })}
+                    className="w-4 h-4 rounded accent-indigo-500 cursor-pointer"
+                  />
+                  <div className="text-xs">
+                    <span className="font-semibold text-white block">Đã gửi thiệp mời cho khách này</span>
+                    <span className="text-[11px] text-slate-400">Đánh dấu để theo dõi tiến độ gửi thiệp trên bảng</span>
+                  </div>
+                </label>
               </div>
             </div>
 

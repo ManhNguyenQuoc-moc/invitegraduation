@@ -7,4 +7,5 @@ export interface IGuestItem {
   status: 'confirmed' | 'pending' | 'declined';
   attendingCount: number;
   wishesCount: number;
+  isSent?: boolean;
 }
