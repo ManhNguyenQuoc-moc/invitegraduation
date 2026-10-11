@@ -47,6 +47,11 @@ export default function RootLayout({
       lang="vi"
       className={`${beVietnamPro.variable} ${lora.variable} ${playfair.variable} ${nunito.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="preload" as="image" href="/wolf-logo-emblem.png" fetchPriority="high" />
+        <link rel="preload" as="image" href="/22.07 (3-clean).png" fetchPriority="high" />
+        <link rel="preload" as="image" href="/22.07 (5).png" />
+      </head>
       <body className={`${beVietnamPro.className} min-h-screen w-full flex flex-col font-sans bg-[#F8FAFC] m-0 p-0 text-[#0F172A]`}>
         <AntdRegistry>
           <AuthProvider>

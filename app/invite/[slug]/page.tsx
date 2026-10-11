@@ -18,7 +18,7 @@ import {
 // DTOs & Services
 import { IInvitationDTO, IWishDTO, RsvpStatus } from "@/types/invitation.dto";
 import { invitationService } from "@/services/invitationService";
-import { INITIAL_MOCK_WISHES } from "@/data/invitationMock";
+import { INITIAL_MOCK_WISHES, getMockInvitationData } from "@/data/invitationMock";
 
 // Sub-components
 import {
@@ -33,9 +33,9 @@ export default function InvitationPage() {
   const params = useParams();
   const slug = (params?.slug as string) || "";
 
-  // Data State
-  const [invitationData, setInvitationData] = useState<IInvitationDTO | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Data State - Khởi tạo ngay với mock data theo slug để hiển thị tức thì, sau đó sync ngầm từ API
+  const [invitationData, setInvitationData] = useState<IInvitationDTO>(() => getMockInvitationData(slug));
+  const [loading, setLoading] = useState(false);
 
   // Audio State & Dynamic Playlist
   const [playlist, setPlaylist] = useState<ITrack[]>(PLAYLIST);
@@ -78,13 +78,12 @@ export default function InvitationPage() {
 
   const loadInvitationData = async () => {
     try {
-      setLoading(true);
       const data = await invitationService.getInvitationBySlug(slug);
-      setInvitationData(data);
+      if (data) {
+        setInvitationData(data);
+      }
     } catch (err: any) {
-      message.error(err.message || "Không thể tải dữ liệu thiệp mời");
-    } finally {
-      setLoading(false);
+      console.warn("Lỗi đồng bộ dữ liệu thiệp:", err);
     }
   };
 
@@ -193,8 +192,12 @@ export default function InvitationPage() {
             <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-sky-400/35 via-cyan-300/30 to-blue-600/40 blur-3xl animate-heartbeat-aura pointer-events-none" />
             <div className="relative z-20 w-36 h-36 sm:w-44 sm:h-44 flex items-center justify-center animate-heartbeat-logo">
               <img
-                src="/wolf-logo-emblem.png?v=2"
+                src="/wolf-logo-emblem.png"
                 alt="Wolf Emblem Logo"
+                loading="eager"
+                decoding="sync"
+                // @ts-ignore
+                fetchPriority="high"
                 className="w-full h-full object-contain filter drop-shadow-[0_0_30px_rgba(56,189,248,0.95)] contrast-[1.12] brightness-[1.18]"
               />
             </div>

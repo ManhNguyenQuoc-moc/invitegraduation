@@ -180,6 +180,8 @@ export const GraduationPosterCard: React.FC<IGraduationPosterCardProps> = ({
         <img
           src="/22.07 (5).png"
           alt="Nền Tàu hỏa và Tòa nhà TDTU"
+          loading="eager"
+          decoding="sync"
           className="absolute pointer-events-none object-contain transition-transform duration-300 ease-out"
           style={{
             left: "0%",
@@ -194,6 +196,10 @@ export const GraduationPosterCard: React.FC<IGraduationPosterCardProps> = ({
         <img
           src="/22.07 (3-clean).png"
           alt="Cử nhân Nguyễn Quốc Mạnh"
+          loading="eager"
+          decoding="sync"
+          // @ts-ignore
+          fetchPriority="high"
           className="absolute pointer-events-none object-contain z-20 transition-transform duration-300 ease-out"
           style={{
             left: "16.5%",
@@ -207,6 +213,8 @@ export const GraduationPosterCard: React.FC<IGraduationPosterCardProps> = ({
         <img
           src="/22.07 (4).png"
           alt="Ngôi sao lấp lánh"
+          loading="eager"
+          decoding="sync"
           className="absolute pointer-events-none object-contain z-25 animate-pulse transition-transform duration-300 ease-out"
           style={{
             left: "25.2%",
@@ -229,6 +237,8 @@ export const GraduationPosterCard: React.FC<IGraduationPosterCardProps> = ({
           <img
             src="/22.07 (text).png"
             alt="Quốc Mạnh - Thân mời bạn đến tham dự lễ tốt nghiệp của mình"
+            loading="eager"
+            decoding="sync"
             className="w-full object-contain drop-shadow-sm animate-text-float"
           />
         </div>
@@ -247,6 +257,8 @@ export const GraduationPosterCard: React.FC<IGraduationPosterCardProps> = ({
         <img
           src="/green-train-clean-full.png"
           alt="Tàu xanh tốc hành"
+          loading="eager"
+          decoding="sync"
           className="w-full object-contain drop-shadow-xl animate-train-chug hover:scale-110 transition-transform duration-300"
         />
       </div>
