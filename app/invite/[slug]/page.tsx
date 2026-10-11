@@ -1,33 +1,27 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { message, Drawer } from "antd";
 import {
-  Volume2,
-  VolumeX,
   CalendarPlus,
   MapPin,
   PhoneCall,
   X,
   Layers,
-  ChevronUp,
   Sparkles
 } from "lucide-react";
 
 // DTOs & Services
-import { IInvitationDTO, IWishDTO, RsvpStatus } from "@/types/invitation.dto";
+import { IInvitationDTO, IWishDTO } from "@/types/invitation.dto";
 import { invitationService } from "@/services/invitationService";
 import { INITIAL_MOCK_WISHES, getMockInvitationData } from "@/data/invitationMock";
 
 // Sub-components
 import {
   HeroSection,
-  VenueAndDressCode,
-  MusicPlayerModal
+  VenueAndDressCode
 } from "./components";
-import { PLAYLIST, ITrack, getActivePlaylist, fetchPlaylistFromDb } from "@/data/musicPlaylist";
-import { Music } from "lucide-react";
 
 export default function InvitationPage() {
   const params = useParams();
@@ -36,13 +30,6 @@ export default function InvitationPage() {
   // Data State
   const [invitationData, setInvitationData] = useState<IInvitationDTO>(() => getMockInvitationData(slug));
   const [loading, setLoading] = useState(true);
-
-  // Audio State & Dynamic Playlist
-  const [playlist, setPlaylist] = useState<ITrack[]>(PLAYLIST);
-  const [currentTrack, setCurrentTrack] = useState<ITrack>(PLAYLIST[0]);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMusicModalOpen, setIsMusicModalOpen] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Danh sách các tài nguyên hình ảnh quan trọng nhất của trang thiệp mời
   const CRITICAL_IMAGES = [
@@ -85,17 +72,15 @@ export default function InvitationPage() {
       // 1. Preload song song toàn bộ ảnh quan trọng của Hero & Poster Card
       const imagesPromise = Promise.all(CRITICAL_IMAGES.map(preloadSingleImage));
 
-      // 2. Tải dữ liệu thiệp mời & danh sách nhạc đồng thời
+      // 2. Tải dữ liệu thiệp mời
       const dataPromise = invitationService.getInvitationBySlug(slug).catch(() => null);
-      const musicPromise = fetchPlaylistFromDb().catch(() => []);
 
       // 3. Thời gian tối thiểu 900ms để hiệu ứng nhịp tim hiển thị mượt mà không bị giật
       const minDelayPromise = new Promise((r) => setTimeout(r, 900));
 
-      const [, fetchedData, activeMusic] = await Promise.all([
+      const [, fetchedData] = await Promise.all([
         imagesPromise,
         dataPromise,
-        musicPromise,
         minDelayPromise,
       ]);
 
@@ -103,10 +88,6 @@ export default function InvitationPage() {
 
       if (fetchedData) {
         setInvitationData(fetchedData);
-      }
-      if (activeMusic && activeMusic.length > 0) {
-        setPlaylist(activeMusic);
-        setCurrentTrack(activeMusic[0]);
       }
 
       setLoading(false);
@@ -119,18 +100,6 @@ export default function InvitationPage() {
     };
   }, [slug]);
 
-  // Lắng nghe cập nhật playlist nếu có
-  useEffect(() => {
-    const updateTracks = async () => {
-      const active = await fetchPlaylistFromDb();
-      if (active.length > 0) {
-        setPlaylist(active);
-      }
-    };
-    window.addEventListener("playlist_updated", updateTracks);
-    return () => window.removeEventListener("playlist_updated", updateTracks);
-  }, []);
-
   // Drawer địa điểm State
   const [isVenueDrawerOpen, setIsVenueDrawerOpen] = useState(false);
 
@@ -139,59 +108,6 @@ export default function InvitationPage() {
 
   // Wishes state (Sổ lưu bút)
   const [wishes, setWishes] = useState<IWishDTO[]>(INITIAL_MOCK_WISHES);
-
-  // Audio handler
-  const toggleAudio = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (isPlaying) {
-      audio.pause();
-      setIsPlaying(false);
-    } else {
-      audio
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch((err) => {
-          console.warn("Lỗi phát audio:", err);
-          setIsPlaying(false);
-        });
-    }
-  };
-
-  // Select Track Handler - Phát nhạc mượt mà khi chọn bài mới không bị race condition
-  const handleSelectTrack = async (track: ITrack) => {
-    setCurrentTrack(track);
-    const audio = audioRef.current;
-    if (audio) {
-      try {
-        // Tạm dừng trước để hủy request play() đang chờ
-        audio.pause();
-        audio.src = track.url;
-        await audio.load();
-        await audio.play();
-        setIsPlaying(true);
-      } catch (err: any) {
-        if (err.name !== "AbortError") {
-          console.warn("Trình duyệt chặn autoplay hoặc URL đang tải:", err);
-        }
-      }
-    }
-    message.success(`Đang phát: ${track.title}`);
-  };
-
-  const handleNextTrack = () => {
-    const currentList = playlist.length > 0 ? playlist : PLAYLIST;
-    const currentIndex = currentList.findIndex((t) => t.id === currentTrack.id);
-    const nextIndex = (currentIndex + 1) % currentList.length;
-    handleSelectTrack(currentList[nextIndex]);
-  };
-
-  const handlePrevTrack = () => {
-    const currentList = playlist.length > 0 ? playlist : PLAYLIST;
-    const currentIndex = currentList.findIndex((t) => t.id === currentTrack.id);
-    const prevIndex = (currentIndex - 1 + currentList.length) % currentList.length;
-    handleSelectTrack(currentList[prevIndex]);
-  };
 
   // Add Wish handler (Sổ lưu bút)
   const handleAddWish = (newWish: IWishDTO) => {
@@ -286,15 +202,6 @@ export default function InvitationPage() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))]" />
       </div>
 
-      {/* Background Music Stream */}
-      <audio
-        ref={audioRef}
-        loop
-        src={currentTrack.url}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-      />
-
       {/* SECTION 1: HERO SECTION CHỦ ĐẠO - FULL WIDTH 100% TRÀN VIỀN MÀN HÌNH */}
       <div className="w-full relative z-10">
         <HeroSection
@@ -307,10 +214,6 @@ export default function InvitationPage() {
           avatarUrl={avatarUrl}
           guestName={guestName}
           slug={slug}
-          isPlaying={isPlaying}
-          currentTrackTitle={currentTrack.title}
-          onToggleAudio={toggleAudio}
-          onOpenMusicModal={() => setIsMusicModalOpen(true)}
           onDownloadIcs={downloadIcs}
           onOpenVenueDrawer={() => setIsVenueDrawerOpen(true)}
         />
@@ -372,39 +275,6 @@ export default function InvitationPage() {
               className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-[#162055] to-[#3b82f6] hover:from-[#1e2c6f] hover:to-[#60a5fa] text-white flex items-center justify-center shadow-lg shadow-indigo-950/60 border border-indigo-300/40 backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ring-1 ring-indigo-400/20"
             >
               <CalendarPlus size={18} className="text-indigo-100 drop-shadow" />
-            </button>
-          </div>
-
-          {/* Nút Chọn/Đổi Bài Hát */}
-          <div className="flex items-center gap-2 group">
-            <span className="px-2.5 py-1 rounded-lg bg-[#0B192C]/90 border border-sky-400/20 text-sky-100 text-[11px] font-medium shadow-md backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity">
-              Đổi Bài Hát
-            </span>
-            <button
-              onClick={() => {
-                setIsMusicModalOpen(true);
-                setIsFloatMenuOpen(false);
-              }}
-              type="button"
-              title="Mở danh sách phát nhạc"
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-[#1e1b4b] to-[#6366f1] hover:from-[#2e1065] hover:to-[#818cf8] text-white flex items-center justify-center shadow-lg shadow-indigo-950/60 border border-indigo-300/40 backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ring-1 ring-indigo-400/20"
-            >
-              <Music size={18} className="text-indigo-100 drop-shadow" />
-            </button>
-          </div>
-
-          {/* Nút Bật/Tắt Âm Nhạc */}
-          <div className="flex items-center gap-2 group">
-            <span className="px-2.5 py-1 rounded-lg bg-[#0B192C]/90 border border-sky-400/20 text-sky-100 text-[11px] font-medium shadow-md backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity">
-              {isPlaying ? "Tắt Nhạc" : "Bật Nhạc"}
-            </span>
-            <button
-              onClick={toggleAudio}
-              type="button"
-              title={isPlaying ? "Tắt nhạc" : "Bật nhạc"}
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#0a192f]/95 hover:bg-[#112240] text-sky-300 flex items-center justify-center shadow-lg shadow-black/60 border border-sky-400/30 backdrop-blur-md transition-all hover:scale-110 active:scale-95 cursor-pointer ring-1 ring-sky-400/20"
-            >
-              {isPlaying ? <Volume2 size={18} className="animate-pulse text-sky-300 drop-shadow" /> : <VolumeX size={18} className="text-slate-400" />}
             </button>
           </div>
         </div>
@@ -492,19 +362,6 @@ export default function InvitationPage() {
           </div>
         </div>
       </Drawer>
-
-      {/* MODAL CHỌN DANH SÁCH BÀI HÁT (PLAYLIST) */}
-      <MusicPlayerModal
-        isOpen={isMusicModalOpen}
-        onClose={() => setIsMusicModalOpen(false)}
-        currentTrack={currentTrack}
-        isPlaying={isPlaying}
-        playlist={playlist}
-        onSelectTrack={handleSelectTrack}
-        onTogglePlay={toggleAudio}
-        onNextTrack={handleNextTrack}
-        onPrevTrack={handlePrevTrack}
-      />
     </div>
   );
 }

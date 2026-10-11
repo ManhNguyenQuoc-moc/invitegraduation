@@ -28,10 +28,6 @@ interface IHeroSectionProps {
   avatarUrl?: string;
   guestName?: string;
   slug?: string;
-  isPlaying?: boolean;
-  currentTrackTitle?: string;
-  onToggleAudio?: () => void;
-  onOpenMusicModal?: () => void;
   onDownloadIcs?: () => void;
   onOpenVenueDrawer?: () => void;
 }
@@ -43,10 +39,6 @@ export const HeroSection: React.FC<IHeroSectionProps> = ({
   eventTime = "11h-18h",
   theme,
   guestName = "gia đình, anh chị em, bạn bè",
-  isPlaying = false,
-  currentTrackTitle = "Inspirational Piano",
-  onToggleAudio,
-  onOpenMusicModal,
   onDownloadIcs,
   onOpenVenueDrawer
 }) => {
@@ -200,29 +192,6 @@ export const HeroSection: React.FC<IHeroSectionProps> = ({
       <div className="relative z-20 w-full px-4 sm:px-8 lg:px-14 pt-6 hidden lg:flex items-center justify-end gap-3 animate-hero-fade-in">
         {/* Action Controls */}
         <div className="flex items-center gap-2">
-          {onToggleAudio && (
-            <button
-              onClick={onToggleAudio}
-              type="button"
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-white/10 hover:bg-white/15 text-sky-200 text-xs font-semibold border border-sky-400/30 backdrop-blur-md transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-              title={isPlaying ? "Tạm dừng nhạc" : "Bật nhạc thiệp mừng"}
-            >
-              {isPlaying ? <Volume2 size={13} className="text-sky-300 animate-pulse" /> : <VolumeX size={13} />}
-              <span>{isPlaying ? "Phát Nhạc" : "Bật Nhạc"}</span>
-            </button>
-          )}
-
-          {onOpenMusicModal && (
-            <button
-              onClick={onOpenMusicModal}
-              type="button"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-sky-500/15 hover:bg-sky-500/25 text-sky-200 text-xs font-semibold border border-sky-400/40 backdrop-blur-md transition-all cursor-pointer shadow-md hover:scale-105 active:scale-95"
-              title="Đổi bản nhạc nền"
-            >
-              <Sparkles size={13} className="text-sky-300" />
-              <span>Đổi Nhạc</span>
-            </button>
-          )}
 
           {onDownloadIcs && (
             <button

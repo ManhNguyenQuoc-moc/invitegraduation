@@ -1,10 +1,8 @@
 import { readJsonFile, writeJsonFile } from './jsonDb';
 import { supabase, isSupabaseConfigured } from './supabase';
 import { IGuestItem } from '@/types/guest.dto';
-import { ITrack } from '@/data/musicPlaylist';
 
 const GUESTS_FILE = 'guests.json';
-const MUSIC_FILE = 'music.json';
 
 // ================= GUESTS SERVICES =================
 export async function getGuestsDb(): Promise<IGuestItem[]> {
@@ -87,68 +85,3 @@ export async function deleteGuestDb(id?: string | null, slug?: string | null): P
   return true;
 }
 
-// ================= MUSIC SERVICES =================
-export async function getMusicDb(): Promise<ITrack[]> {
-  if (isSupabaseConfigured && supabase) {
-    try {
-      const { data, error } = await supabase.from('music').select('*');
-      if (!error && Array.isArray(data) && data.length > 0) {
-        return data as ITrack[];
-      }
-    } catch (e) {
-      console.warn('Supabase get music error:', e);
-    }
-  }
-  return readJsonFile<ITrack[]>(MUSIC_FILE, []);
-}
-
-export async function saveTrackDb(track: ITrack): Promise<boolean> {
-  if (isSupabaseConfigured && supabase) {
-    try {
-      await supabase.from('music').upsert(track, { onConflict: 'id' });
-    } catch (e) {
-      console.warn('Supabase save music error:', e);
-    }
-  }
-  const tracks = readJsonFile<ITrack[]>(MUSIC_FILE, []);
-  const idx = tracks.findIndex((t) => t.id === track.id);
-  let updatedList: ITrack[];
-  if (idx >= 0) {
-    tracks[idx] = { ...tracks[idx], ...track };
-    updatedList = [...tracks];
-  } else {
-    updatedList = [track, ...tracks];
-  }
-  writeJsonFile(MUSIC_FILE, updatedList);
-  return true;
-}
-
-export async function replaceMusicDb(tracks: ITrack[]): Promise<boolean> {
-  if (isSupabaseConfigured && supabase) {
-    try {
-      // Xóa tất cả các bài hiện có trên Supabase rồi nạp lại danh sách mới nhất
-      await supabase.from('music').delete().neq('id', '___non_existent___');
-      if (tracks.length > 0) {
-        await supabase.from('music').insert(tracks);
-      }
-    } catch (e) {
-      console.warn('Supabase replace music error:', e);
-    }
-  }
-  writeJsonFile(MUSIC_FILE, tracks);
-  return true;
-}
-
-export async function deleteTrackDb(id: string): Promise<boolean> {
-  if (isSupabaseConfigured && supabase) {
-    try {
-      await supabase.from('music').delete().eq('id', id);
-    } catch (e) {
-      console.warn('Supabase delete track error:', e);
-    }
-  }
-  const tracks = readJsonFile<ITrack[]>(MUSIC_FILE, []);
-  const filtered = tracks.filter((t) => t.id !== id);
-  writeJsonFile(MUSIC_FILE, filtered);
-  return true;
-}

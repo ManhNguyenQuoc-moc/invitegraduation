@@ -31,10 +31,6 @@ import {
   Sparkles,
   Filter,
   LogOut,
-  Music,
-  Play,
-  Pause,
-  Plus,
   Pencil,
   Edit,
   Save,
@@ -42,7 +38,6 @@ import {
   CheckSquare,
   Square
 } from 'lucide-react';
-import { ITrack, getActivePlaylist, saveActivePlaylist, fetchPlaylistFromDb } from '@/data/musicPlaylist';
 import * as XLSX from 'xlsx';
 
 export interface IGuestItem {
@@ -71,7 +66,6 @@ export default function GuestManagementPage() {
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [isMusicManagerOpen, setIsMusicManagerOpen] = useState(false);
   const [qrModalGuest, setQrModalGuest] = useState<IGuestItem | null>(null);
 
   // Excel Import States
@@ -81,14 +75,6 @@ export default function GuestManagementPage() {
 
   // Modal Sửa Khách Mời
   const [editingGuest, setEditingGuest] = useState<IGuestItem | null>(null);
-
-  // Music Playlist State
-  const [playlist, setPlaylist] = useState<ITrack[]>([]);
-  const [newTrackTitle, setNewTrackTitle] = useState('');
-  const [newTrackArtist, setNewTrackArtist] = useState('');
-  const [newTrackUrl, setNewTrackUrl] = useState('');
-  const [newTrackTag, setNewTrackTag] = useState('Nhạc Tự Chọn');
-  const [previewTrackUrl, setPreviewTrackUrl] = useState<string | null>(null);
 
   // Key lưu trữ trạng thái đã gửi thiệp (đảm bảo không bị mất dù bảng Supabase chưa có cột isSent)
   const SENT_STORAGE_KEY = 'guest_invitation_sent_status_v1';
@@ -142,143 +128,6 @@ export default function GuestManagementPage() {
   useEffect(() => {
     loadGuestsFromDb();
   }, []);
-
-  // Load Playlist from JSON Database
-  useEffect(() => {
-    fetchPlaylistFromDb().then((data) => setPlaylist(data));
-  }, []);
-
-  const handleAddTrack = async () => {
-    if (!newTrackTitle.trim() || !newTrackUrl.trim()) {
-      message.error('Vui lòng nhập tên bài hát và liên kết URL file âm thanh (.mp3)!');
-      return;
-    }
-    const trackItem: ITrack = {
-      id: 'custom-' + Date.now(),
-      title: newTrackTitle.trim(),
-      artist: newTrackArtist.trim() || 'Tác giả',
-      url: newTrackUrl.trim(),
-      tag: newTrackTag.trim() || 'Nhạc Tự Chọn',
-      isCustom: true
-    };
-
-    try {
-      const res = await fetch('/api/music', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(trackItem),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        const updated = [trackItem, ...playlist];
-        setPlaylist(updated);
-        saveActivePlaylist(updated, false);
-        setNewTrackTitle('');
-        setNewTrackArtist('');
-        setNewTrackUrl('');
-        message.success(`Đã thêm bài hát "${trackItem.title}" vào Supabase & CSDL thành công!`);
-      } else {
-        message.error(data.message || 'Lỗi khi lưu bài hát vào cơ sở dữ liệu');
-      }
-    } catch (err) {
-      console.error('Lỗi khi thêm bài hát:', err);
-      message.error('Không thể kết nối đến máy chủ để lưu bài hát');
-    }
-  };
-
-  const handleDeleteTrack = async (id: string) => {
-    try {
-      const updated = playlist.filter((t) => t.id !== id);
-      setPlaylist(updated);
-      saveActivePlaylist(updated, false); // Lưu LocalStorage và dispatch event
-
-      if (previewTrackUrl && playlist.find((t) => t.id === id)?.url === previewTrackUrl) {
-        setPreviewTrackUrl(null);
-      }
-
-      // Gọi API DELETE để xóa trực tiếp khỏi data/music.json
-      const res = await fetch(`/api/music?id=${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (data.success) {
-        message.success('Đã xóa bài hát khỏi danh sách và file data/music.json!');
-      } else {
-        // Fallback ghi đè cả mảng
-        await fetch('/api/music', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updated),
-        });
-        message.success('Đã cập nhật danh sách bài hát!');
-      }
-    } catch (err) {
-      console.error('Lỗi khi xóa bài hát:', err);
-      message.error('Không thể kết nối đến máy chủ để xóa bài hát');
-    }
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|wav|m4a|ogg|aac)$/i)) {
-      message.error('Vui lòng chọn file âm thanh định dạng hợp lệ (.mp3, .wav, .m4a, .ogg)!');
-      e.target.value = '';
-      return;
-    }
-
-    const hideLoading = message.loading(`Đang tải file "${file.name}" lên hệ thống...`, 0);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await fetch('/api/music/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const result = await res.json();
-      hideLoading();
-
-      if (res.ok && result.success && result.url) {
-        const trackItem: ITrack = {
-          id: 'uploaded-' + Date.now(),
-          title: result.fileName || file.name.replace(/\.[^/.]+$/, ''),
-          artist: 'Nhạc Tải Lên',
-          url: result.url,
-          tag: 'Tệp Tải Lên',
-          isCustom: true
-        };
-
-        // GỌI TRỰC TIẾP API LƯU VÀO SUPABASE & CSDL HỆ THỐNG
-        const saveRes = await fetch('/api/music', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(trackItem),
-        });
-        const saveResult = await saveRes.json();
-
-        if (saveRes.ok && saveResult.success) {
-          const updated = [trackItem, ...playlist];
-          setPlaylist(updated);
-          saveActivePlaylist(updated, false); // Lưu LocalStorage & dispatch event
-          message.success(`Đã lưu "${trackItem.title}" vào cơ sở dữ liệu Supabase thành công!`);
-        } else {
-          message.error(saveResult.message || 'Lỗi khi lưu bài hát vào cơ sở dữ liệu');
-        }
-      } else {
-        message.error(result.message || 'Lỗi khi tải file nhạc lên máy chủ');
-      }
-    } catch (err: any) {
-      hideLoading();
-      console.error('Lỗi upload file:', err);
-      message.error(err?.message || 'Không thể kết nối đến máy chủ để tải file');
-    } finally {
-      e.target.value = '';
-    }
-  };
 
   // Bảo vệ route: Chỉ cho phép vào khi đã đăng nhập
   useEffect(() => {
@@ -666,15 +515,6 @@ export default function GuestManagementPage() {
                 Xem Thiệp Mẫu
               </button>
             </Link>
-
-            <button 
-              className="px-4 py-2 rounded-xl border border-indigo-500/40 text-indigo-300 hover:bg-indigo-950/40 text-xs font-semibold flex items-center transition-all cursor-pointer shadow-sm"
-              onClick={() => setIsMusicManagerOpen(true)}
-              title="Quản lý và tải lên nhạc nền cho thiệp mời"
-            >
-              <Music className="w-4 h-4 mr-2 text-indigo-400" />
-              Quản Lý Nhạc Thiệp ({playlist.length})
-            </button>
 
             <button 
               className="px-4 py-2 rounded-xl border border-emerald-600/40 text-emerald-400 hover:bg-emerald-950/40 text-xs font-semibold flex items-center transition-all"
@@ -1326,183 +1166,6 @@ export default function GuestManagementPage() {
                 className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium"
               >
                 Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: QUẢN LÝ & IMPORT NHẠC CHO THIỆP MỜI */}
-      {isMusicManagerOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-xl p-6 space-y-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
-                  <Music className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Quản Lý & Import Nhạc Thiệp</h3>
-                  <p className="text-xs text-slate-400">Tùy biến playlist để khách mời tự do thưởng thức khi mở thiệp</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsMusicManagerOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Khung Thêm Nhạc Mới */}
-            <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 space-y-3.5">
-              <div className="text-xs font-semibold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
-                <Plus className="w-3.5 h-3.5" /> Thêm Bài Hát Mới
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">Tên bài hát *</label>
-                  <input
-                    type="text"
-                    value={newTrackTitle}
-                    onChange={(e) => setNewTrackTitle(e.target.value)}
-                    placeholder="VD: Thời Học Sinh Kỷ Niệm"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500 focus:border-indigo-500 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">Ca sĩ / Thể loại</label>
-                  <input
-                    type="text"
-                    value={newTrackArtist}
-                    onChange={(e) => setNewTrackArtist(e.target.value)}
-                    placeholder="VD: Acoustic Guitar"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500 focus:border-indigo-500 outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] text-slate-400 mb-1">Đường dẫn file MP3 (URL) *</label>
-                <input
-                  type="url"
-                  value={newTrackUrl}
-                  onChange={(e) => setNewTrackUrl(e.target.value)}
-                  placeholder="https://example.com/audio.mp3"
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500 focus:border-indigo-500 outline-none"
-                />
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-                {/* Tải lên trực tiếp từ máy */}
-                <label className="cursor-pointer px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center gap-1.5 transition-all">
-                  <Upload className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Hoặc tải tệp MP3 từ máy</span>
-                  <input
-                    type="file"
-                    accept="audio/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </label>
-
-                <button
-                  type="button"
-                  onClick={handleAddTrack}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md cursor-pointer ml-auto"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Thêm Vào Playlist
-                </button>
-              </div>
-            </div>
-
-            {/* Danh Sách Bài Hát Hiện Tại */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-slate-400 px-1">
-                <span>Danh Sách Bài Hát ({playlist.length})</span>
-                <span className="text-[11px] text-slate-500 normal-case">Tự động đồng bộ sang trang thiệp mời</span>
-              </div>
-
-              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                {playlist.map((track, idx) => (
-                  <div
-                    key={track.id}
-                    className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-slate-700 transition-all flex items-center justify-between gap-3"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-6 text-center text-xs font-mono text-slate-500">
-                        0{idx + 1}
-                      </span>
-                      <div className="min-w-0">
-                        <div className="text-xs font-semibold text-white truncate flex items-center gap-2">
-                          <span>{track.title}</span>
-                          {track.isCustom && (
-                            <span className="px-1.5 py-0.5 rounded text-[9px] bg-indigo-500/20 text-indigo-300 border border-indigo-400/30">
-                              Tùy chọn
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[11px] text-slate-400 truncate">
-                          {track.artist} • <span className="text-sky-300/80">{track.tag}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      {/* Thử nghe */}
-                      <button
-                        onClick={() => {
-                          if (previewTrackUrl === track.url) {
-                            setPreviewTrackUrl(null);
-                          } else {
-                            setPreviewTrackUrl(track.url);
-                          }
-                        }}
-                        className={`p-2 rounded-lg text-xs transition-all cursor-pointer ${
-                          previewTrackUrl === track.url
-                            ? "bg-sky-500 text-slate-950 font-bold"
-                            : "bg-slate-800 hover:bg-slate-700 text-slate-300"
-                        }`}
-                        title="Nghe thử"
-                      >
-                        {previewTrackUrl === track.url ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-                      </button>
-
-                      {/* Nút Xóa */}
-                      <button
-                        onClick={() => handleDeleteTrack(track.id)}
-                        className="p-2 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-all cursor-pointer"
-                        title="Xóa bài hát"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Trình nghe thử âm thanh ẩn */}
-              {previewTrackUrl && (
-                <audio
-                  src={previewTrackUrl}
-                  autoPlay
-                  onEnded={() => setPreviewTrackUrl(null)}
-                  className="hidden"
-                />
-              )}
-            </div>
-
-            <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
-              <button
-                onClick={() => {
-                  setPreviewTrackUrl(null);
-                  setIsMusicManagerOpen(false);
-                }}
-                className="px-5 py-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-all cursor-pointer"
-              >
-                Xong
               </button>
             </div>
           </div>
