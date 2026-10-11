@@ -379,36 +379,42 @@ export default function InvitationPage() {
         placement="bottom"
         open={isVenueDrawerOpen}
         onClose={() => setIsVenueDrawerOpen(false)}
-        size="large"
+        height="88vh"
         closable={false}
         className="venue-info-drawer"
         styles={{
           body: {
             backgroundColor: "#030A16",
-            padding: "0 16px 24px 16px",
+            padding: "0 16px env(safe-area-inset-bottom, 24px) 16px",
             color: "#FFFFFF",
-            overflowY: "auto"
+            overflowY: "auto",
+            overscrollBehavior: "contain"
           },
           section: {
             borderTopLeftRadius: "28px",
             borderTopRightRadius: "28px",
             backgroundColor: "#030A16",
-            borderTop: "1px solid rgba(56, 189, 248, 0.3)"
+            borderTop: "1px solid rgba(56, 189, 248, 0.35)",
+            maxHeight: "88vh"
           }
         }}
       >
-        <div className="w-full max-w-5xl mx-auto flex flex-col">
-          {/* Header Ghim (Sticky Header) & Nút Đóng */}
-          <div className="sticky top-0 z-30 w-full flex items-center justify-between py-4 bg-[#030A16]/95 backdrop-blur-md border-b border-white/10 mb-4">
+        <div className="w-full max-w-5xl mx-auto flex flex-col relative">
+          {/* Header Ghim (Sticky Header) & Nút Đóng Trên Cùng */}
+          <div className="sticky top-0 z-40 w-full flex items-center justify-between py-3.5 bg-[#030A16]/95 backdrop-blur-md border-b border-white/10 mb-4 pt-[calc(0.5rem+env(safe-area-inset-top,0px))]">
             <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse" />
               <span className="font-bold text-xs uppercase tracking-widest text-sky-300">
                 Thông Tin Địa Điểm và Đỗ Xe
               </span>
             </div>
 
+            {/* Nút X nổi bật, vùng bấm rộng chuẩn mobile (min 44px) */}
             <button
               onClick={() => setIsVenueDrawerOpen(false)}
-              className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-all cursor-pointer"
+              aria-label="Đóng bảng thông tin"
+              title="Đóng"
+              className="w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-white/15 hover:bg-white/25 active:bg-sky-500/30 text-slate-200 hover:text-white flex items-center justify-center transition-all cursor-pointer border border-white/20 shadow-md shrink-0"
             >
               <X size={18} />
             </button>
@@ -416,6 +422,18 @@ export default function InvitationPage() {
 
           {/* Nội dung VenueAndDressCode hiển thị bên trong Drawer */}
           <VenueAndDressCode university={university} hostName={hostName} />
+
+          {/* Nút Đóng Lại ở chân trang (Footer Sticky / Bottom Action) để lướt xuống cuối không bị kẹt */}
+          <div className="w-full pt-8 pb-4 flex justify-center">
+            <button
+              onClick={() => setIsVenueDrawerOpen(false)}
+              type="button"
+              className="w-full sm:w-auto px-8 py-3 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-slate-200 hover:text-white text-xs font-bold uppercase tracking-wider border border-white/20 backdrop-blur-md transition-all flex items-center justify-center gap-2 shadow-lg"
+            >
+              <X size={15} />
+              <span>Đóng Bảng Thông Tin</span>
+            </button>
+          </div>
         </div>
       </Drawer>
 
