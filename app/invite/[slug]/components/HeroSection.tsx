@@ -364,8 +364,15 @@ export const HeroSection: React.FC<IHeroSectionProps> = ({
                         style={{ animationDuration: "2.2s" }}
                       />
 
-                      <span className="font-nunito font-black text-3xl sm:text-4xl xl:text-5xl text-white tracking-normal drop-shadow-[0_2px_14px_rgba(56,189,248,0.45)] leading-tight break-words py-0.5">
-                        {guestName}
+                      <span className="font-nunito font-black text-2xl xs:text-3xl sm:text-4xl xl:text-5xl text-white tracking-normal drop-shadow-[0_2px_14px_rgba(56,189,248,0.45)] leading-tight py-0.5 text-center sm:text-left [text-wrap:balance]">
+                        {guestName === "Gia đình, Anh chị em & Bạn bè" ? (
+                          <>
+                            <span className="inline sm:inline">Gia đình, Anh chị em</span>
+                            <span className="inline sm:inline"> & Bạn bè</span>
+                          </>
+                        ) : (
+                          guestName
+                        )}
                       </span>
 
                       {/* Tia sáng vàng bên PHẢI (Chỉ xuất hiện trên mobile) */}
@@ -378,11 +385,13 @@ export const HeroSection: React.FC<IHeroSectionProps> = ({
                     </div>
                   </div>
 
-                  {/* Lời chúc & thông điệp */}
-                  <p className="text-xs sm:text-sm xl:text-[15px] text-slate-200 leading-relaxed font-light text-center sm:text-left mt-1">
+                  {/* Lời chúc & thông điệp - Tối ưu ngắt dòng cân bằng đẹp mắt */}
+                  <p className="text-xs sm:text-sm xl:text-[15px] text-slate-200 leading-relaxed font-light text-center sm:text-left mt-1.5 [text-wrap:balance] max-w-xl mx-auto sm:mx-0">
                     Đến chung vui và tham dự lễ tốt nghiệp của{" "}
                     <span className="font-medium text-white">mình</span> tại{" "}
-                    <span className="font-medium text-sky-100">{university}</span>. Sự hiện diện của bạn là niềm vinh hạnh to lớn đối với mình và gia đình.
+                    <span className="font-medium text-sky-100">{university}</span>.
+                    <br className="hidden sm:inline" />
+                    {" "}Sự hiện diện của bạn là niềm vinh hạnh to lớn đối với mình và gia đình.
                   </p>
                 </div>
               </div>
