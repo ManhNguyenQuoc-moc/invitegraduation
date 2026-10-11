@@ -33,8 +33,35 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Thiệp Mời Tốt Nghiệp - Nguyễn Quốc Mạnh",
-  description: "Thiệp mời lễ tốt nghiệp Cử nhân - Đại học Tôn Đức Thắng",
+  metadataBase: new URL("https://invitegraduation.vercel.app"),
+  title: "Thiệp Mời Lễ Tốt Nghiệp - Nguyễn Quốc Mạnh",
+  description: "Trân trọng kính mời bạn đến tham dự Lễ Trao Bằng Tốt Nghiệp Cử nhân cùng Quốc Mạnh tại Đại học Tôn Đức Thắng (TDTU) - 23.10.2026",
+  openGraph: {
+    title: "Thiệp Mời Lễ Tốt Nghiệp - Nguyễn Quốc Mạnh",
+    description: "Trân trọng kính mời bạn đến tham dự Lễ Trao Bằng Tốt Nghiệp Cử nhân cùng Quốc Mạnh tại Đại học Tôn Đức Thắng (TDTU) - 23.10.2026",
+    url: "https://invitegraduation.vercel.app",
+    siteName: "Thiệp Mời Tốt Nghiệp - Nguyễn Quốc Mạnh",
+    images: [
+      {
+        url: "/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Thư Mời Lễ Tốt Nghiệp - Nguyễn Quốc Mạnh",
+      },
+    ],
+    locale: "vi_VN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Thiệp Mời Lễ Tốt Nghiệp - Nguyễn Quốc Mạnh",
+    description: "Trân trọng kính mời bạn đến tham dự Lễ Trao Bằng Tốt Nghiệp Cử nhân cùng Quốc Mạnh tại Đại học Tôn Đức Thắng - 23.10.2026",
+    images: ["/og-image.jpg"],
+  },
+  icons: {
+    icon: "/wolf-logo-emblem.png",
+    apple: "/wolf-logo-emblem.png",
+  },
 };
 
 export default function RootLayout({
