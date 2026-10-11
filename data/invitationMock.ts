@@ -13,7 +13,7 @@ export const MOCK_GUESTS_LIST = [
 
 export const getMockInvitationData = (slug: string = ""): IInvitationDTO => {
   const foundGuest = MOCK_GUESTS_LIST.find(g => g.slug === slug);
-  const defaultGuestName = "Quý Bạn & Anh Chị";
+  const defaultGuestName = "Gia đình, Anh chị em & Bạn bè";
   const guestName = foundGuest ? foundGuest.name : defaultGuestName;
   const groupName = foundGuest ? foundGuest.group : "Khách Quý Thân Thiết";
 
