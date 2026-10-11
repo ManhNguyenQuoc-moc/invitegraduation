@@ -33,38 +33,60 @@ export async function POST(req: NextRequest) {
     const fileName = `${baseName}-${Date.now()}${ext}`;
     const cleanTitle = file.name.replace(/\.[^/.]+$/, '');
 
-    // 1. Thử tải lên Supabase Storage nếu có bucket 'music'
+    // 1. Tải file âm thanh lên Supabase Storage (Bucket 'music')
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
-    if (supabaseUrl && supabaseKey) {
-      try {
-        const { createClient } = await import('@supabase/supabase-js');
-        const supabase = createClient(supabaseUrl, supabaseKey);
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json({
+        success: false,
+        message: 'Chưa cấu hình Supabase URL hoặc API Key trong hệ thống!'
+      }, { status: 500 });
+    }
 
-        const { error: uploadError } = await supabase.storage
-          .from('music')
-          .upload(fileName, buffer, {
-            contentType: file.type || 'audio/mpeg',
-            upsert: true,
-          });
+    try {
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(supabaseUrl, supabaseKey);
 
-        if (!uploadError) {
-          const { data: publicData } = supabase.storage.from('music').getPublicUrl(fileName);
-          if (publicData?.publicUrl) {
-            return NextResponse.json({
-              success: true,
-              url: publicData.publicUrl,
-              fileName: cleanTitle,
-              message: 'Tải file lên đám mây Supabase thành công!'
-            });
-          }
-        } else {
-          console.warn('Supabase storage upload error:', uploadError.message);
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('music')
+        .upload(fileName, buffer, {
+          contentType: file.type || 'audio/mpeg',
+          upsert: true,
+        });
+
+      if (uploadError) {
+        console.error('Supabase storage upload error:', uploadError);
+        // Nếu lỗi do Policy RLS
+        if (uploadError.message?.includes('row-level security') || (uploadError as any).statusCode === '403') {
+          return NextResponse.json({
+            success: false,
+            message: `Supabase Storage chặn tải lên do chưa cấp quyền (RLS Policy): Vui lòng vào Supabase Dashboard > Storage > Buckets > music > Configuration > Policies và thêm policy cho phép INSERT (hoặc tắt RLS cho bucket music). Chi tiết: ${uploadError.message}`
+          }, { status: 403 });
         }
-      } catch (storageErr) {
-        console.warn('Lỗi Supabase Storage:', storageErr);
+
+        return NextResponse.json({
+          success: false,
+          message: `Lỗi tải file lên Supabase Storage: ${uploadError.message}`
+        }, { status: 400 });
       }
+
+      // Lấy link công khai sau khi upload thành công lên bucket music
+      const { data: publicData } = supabase.storage.from('music').getPublicUrl(fileName);
+      if (publicData?.publicUrl) {
+        return NextResponse.json({
+          success: true,
+          url: publicData.publicUrl,
+          fileName: cleanTitle,
+          message: 'Tải file lên đám mây Supabase Storage thành công!'
+        });
+      }
+    } catch (storageErr: any) {
+      console.error('Lỗi kết nối Supabase Storage:', storageErr);
+      return NextResponse.json({
+        success: false,
+        message: `Lỗi kết nối Supabase Storage: ${storageErr?.message || storageErr}`
+      }, { status: 500 });
     }
 
     // 2. Thử ghi vào public/music (hoạt động khi chạy local server)
