@@ -40,6 +40,7 @@ import {
   Save
 } from 'lucide-react';
 import { ITrack, getActivePlaylist, saveActivePlaylist, fetchPlaylistFromDb } from '@/data/musicPlaylist';
+import * as XLSX from 'xlsx';
 
 export interface IGuestItem {
   id: string;
@@ -67,6 +68,11 @@ export default function GuestManagementPage() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isMusicManagerOpen, setIsMusicManagerOpen] = useState(false);
   const [qrModalGuest, setQrModalGuest] = useState<IGuestItem | null>(null);
+
+  // Excel Import States
+  const [isImporting, setIsImporting] = useState(false);
+  const [importedPreview, setImportedPreview] = useState<IGuestItem[]>([]);
+  const [importFileName, setImportFileName] = useState<string>('');
 
   // Modal Sửa Khách Mời
   const [editingGuest, setEditingGuest] = useState<IGuestItem | null>(null);
@@ -332,57 +338,179 @@ export default function GuestManagementPage() {
     }
   };
 
-  // IMPORT FILE JSON / EXCEL (GỌI API LƯU JSON DB)
-  const handleSimulateImport = async () => {
-    const imported: IGuestItem[] = [
-      {
-        id: (Date.now() + 1).toString(),
-        name: 'Phạm Hương Mai',
-        phone: '0977889911',
-        slug: generateSlug('Phạm Hương Mai'),
-        group: 'Bạn Bè Đại Học',
-        status: 'pending',
-        attendingCount: 1,
-        wishesCount: 0
-      },
-      {
-        id: (Date.now() + 2).toString(),
-        name: 'Trương Quốc Anh',
-        phone: '0966554433',
-        slug: generateSlug('Trương Quốc Anh'),
-        group: 'Đồng Nghiệp Công Ty',
-        status: 'pending',
-        attendingCount: 1,
-        wishesCount: 0
-      },
-      {
-        id: (Date.now() + 3).toString(),
-        name: 'Bác Ba & Gia Đình',
-        phone: '0911223344',
-        slug: generateSlug('Bác Ba & Gia Đình'),
-        group: 'Họ Hàng Thân Thiết',
-        status: 'pending',
-        attendingCount: 2,
-        wishesCount: 0
+  // TẢI FILE MẪU EXCEL CHUẨN
+  const handleDownloadTemplate = () => {
+    try {
+      const sampleData = [
+        {
+          'Họ và tên': 'Nguyễn Văn An',
+          'Số điện thoại': '0901234567',
+          'Nhóm quan hệ': 'Bạn Bè Đại Học'
+        },
+        {
+          'Họ và tên': 'Trần Thị Mai & Gia Đình',
+          'Số điện thoại': '0912345678',
+          'Nhóm quan hệ': 'Họ Hàng Thân Thiết'
+        },
+        {
+          'Họ và tên': 'Lê Hoàng Nam',
+          'Số điện thoại': '0988776655',
+          'Nhóm quan hệ': 'Đồng Nghiệp'
+        }
+      ];
+
+      const ws = XLSX.utils.json_to_sheet(sampleData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'DanhSachKhachMoi');
+      XLSX.writeFile(wb, 'danh_sach_khach_moi.xlsx');
+      message.success('Đã tải xuống file mẫu danh_sach_khach_moi.xlsx');
+    } catch (err) {
+      console.error('Lỗi xuất file mẫu:', err);
+      message.error('Không thể tạo file mẫu excel');
+    }
+  };
+
+  // ĐỌC VÀ PARSE FILE EXCEL / CSV THỰC TẾ
+  const handleFileUploadExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportFileName(file.name);
+    setIsImporting(true);
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+      
+      const firstSheetName = workbook.SheetNames[0];
+      if (!firstSheetName) {
+        message.error('File Excel không có trang tính (sheet) nào!');
+        setIsImporting(false);
+        return;
       }
-    ];
+
+      const worksheet = workbook.Sheets[firstSheetName];
+      const rawRows: Record<string, any>[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+
+      if (!rawRows || rawRows.length === 0) {
+        message.warning('File Excel không chứa dòng dữ liệu nào!');
+        setIsImporting(false);
+        return;
+      }
+
+      // Map linh hoạt các tên cột (Việt / Anh / Không dấu)
+      const parsedGuests: IGuestItem[] = [];
+
+      for (let i = 0; i < rawRows.length; i++) {
+        const row = rawRows[i];
+        
+        // Tìm tên khách
+        const nameVal = 
+          row['Họ và tên'] || 
+          row['Họ và Tên'] || 
+          row['Họ tên'] || 
+          row['Họ Tên'] || 
+          row['Tên'] || 
+          row['Name'] || 
+          row['Full Name'] || 
+          row['Khách mời'] || 
+          row['Khách Mời'] || 
+          Object.values(row)[0]; // Fallback lấy cột đầu tiên
+
+        const name = typeof nameVal === 'string' ? nameVal.trim() : String(nameVal || '').trim();
+        if (!name) continue; // Bỏ qua dòng trống tên
+
+        // Tìm số điện thoại
+        const phoneVal = 
+          row['Số điện thoại'] || 
+          row['Số Điện Thoại'] || 
+          row['SĐT'] || 
+          row['SDT'] || 
+          row['Phone'] || 
+          row['Mobile'] || 
+          '';
+        const phone = typeof phoneVal === 'string' ? phoneVal.trim() : String(phoneVal || '').trim();
+
+        // Tìm nhóm
+        const groupVal = 
+          row['Nhóm'] || 
+          row['Nhóm quan hệ'] || 
+          row['Nhóm Quan Hệ'] || 
+          row['Group'] || 
+          row['Mối quan hệ'] || 
+          'Bạn Bè';
+        const group = typeof groupVal === 'string' && groupVal.trim() ? groupVal.trim() : 'Bạn Bè';
+
+        const newGuest: IGuestItem = {
+          id: `${Date.now()}-${i}-${Math.random().toString(36).substring(2, 6)}`,
+          name: name,
+          phone: phone || 'Chưa có SĐT',
+          slug: generateSlug(name),
+          group: group,
+          status: 'pending',
+          attendingCount: 1,
+          wishesCount: 0
+        };
+
+        parsedGuests.push(newGuest);
+      }
+
+      if (parsedGuests.length === 0) {
+        message.error('Không tìm thấy dữ liệu tên khách mời hợp lệ trong file!');
+        setIsImporting(false);
+        return;
+      }
+
+      setImportedPreview(parsedGuests);
+      message.success(`Đã đọc thành công ${parsedGuests.length} khách mời từ file ${file.name}!`);
+    } catch (err) {
+      console.error('Lỗi khi đọc file Excel:', err);
+      message.error('Không thể đọc file. Vui lòng kiểm tra định dạng .xlsx, .xls hoặc .csv');
+    } finally {
+      setIsImporting(false);
+      // Reset input value để có thể chọn lại file cùng tên nếu cần
+      e.target.value = '';
+    }
+  };
+
+  // XÁC NHẬN LƯU DANH SÁCH ĐÃ IMPORT LÊN SERVER & DB
+  const handleConfirmImport = async () => {
+    if (importedPreview.length === 0) {
+      message.warning('Chưa có khách mời nào để lưu!');
+      return;
+    }
+
+    setIsImporting(true);
+    const hide = message.loading(`Đang lưu ${importedPreview.length} khách mời vào hệ thống...`, 0);
 
     try {
       const res = await fetch('/api/guests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(imported),
+        body: JSON.stringify(importedPreview),
       });
       const result = await res.json();
+      hide();
+
       if (result.success) {
-        setGuests([...imported, ...guests]);
+        setGuests([...importedPreview, ...guests]);
         setIsImportModalOpen(false);
-        message.success('Đã import và lưu thành công vào data/guests.json!');
+        setImportedPreview([]);
+        setImportFileName('');
+        message.success(`Đã lưu thành công ${importedPreview.length} khách mời vào cơ sở dữ liệu!`);
+      } else {
+        message.error(result.message || 'Lỗi khi lưu khách mời vào cơ sở dữ liệu');
       }
-    } catch {
-      setGuests([...imported, ...guests]);
+    } catch (err) {
+      hide();
+      console.error('Lỗi khi gửi dữ liệu lên server:', err);
+      setGuests([...importedPreview, ...guests]);
       setIsImportModalOpen(false);
-      message.success('Đã import thành công 3 khách mời!');
+      setImportedPreview([]);
+      setImportFileName('');
+      message.success(`Đã thêm ${importedPreview.length} khách mời vào danh sách!`);
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -830,44 +958,127 @@ export default function GuestManagementPage() {
 
       {/* MODAL: IMPORT EXCEL / CSV */}
       {isImportModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
-              Import Khách Mời Từ Excel / CSV
-            </h3>
-
-            <div className="border-2 border-dashed border-slate-700 hover:border-emerald-500 rounded-2xl p-8 text-center transition-colors bg-slate-950/40">
-              <FileSpreadsheet className="w-12 h-12 text-slate-500 mx-auto mb-3" />
-              <div className="text-sm font-semibold text-slate-200">Kéo thả file .xlsx hoặc .csv vào đây</div>
-              <p className="text-xs text-slate-500 mt-1">Cấu trúc các cột: Tên, Số điện thoại, Nhóm quan hệ</p>
-              
-              <button 
-                onClick={handleSimulateImport}
-                className="mt-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl inline-flex items-center gap-2"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                Chọn File & Tải Lên Mẫu
-              </button>
-            </div>
-
-            <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 flex items-center justify-between">
-              <div className="text-xs text-slate-400">Chưa có định dạng chuẩn? Tải file mẫu tại đây:</div>
-              <button 
-                onClick={() => message.info('Đang tải file mẫu danh_sach_khach_moi.xlsx')}
-                className="text-xs text-blue-400 hover:underline flex items-center gap-1 font-medium"
-              >
-                <Download className="w-3 h-3" /> Tải file mẫu
-              </button>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl p-6 space-y-5 shadow-2xl">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
+                Import Khách Mời Từ Excel / CSV
+              </h3>
               <button
-                onClick={() => setIsImportModalOpen(false)}
-                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800"
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  setImportedPreview([]);
+                  setImportFileName('');
+                }}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* VÙNG CHỌN HOẶC KÉO THẢ TỆP */}
+            <label className="border-2 border-dashed border-slate-700 hover:border-emerald-500 rounded-2xl p-6 text-center transition-all bg-slate-950/50 hover:bg-slate-950/80 cursor-pointer block group">
+              <FileSpreadsheet className="w-12 h-12 text-slate-500 group-hover:text-emerald-400 mx-auto mb-2 transition-colors" />
+              <div className="text-sm font-semibold text-slate-200 group-hover:text-emerald-300 transition-colors">
+                {importFileName ? `Đã chọn: ${importFileName}` : 'Nhấn vào đây hoặc kéo thả file .xlsx / .csv'}
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                Các cột hỗ trợ: <span className="text-emerald-400 font-medium">Họ và tên</span>, <span className="text-sky-400 font-medium">Số điện thoại</span>, <span className="text-amber-400 font-medium">Nhóm</span>
+              </p>
+              
+              <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow transition-all pointer-events-none">
+                <Upload className="w-3.5 h-3.5" />
+                {importFileName ? 'Chọn file khác' : 'Chọn tệp Excel từ máy tính'}
+              </div>
+
+              <input
+                type="file"
+                accept=".xlsx, .xls, .csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                onChange={handleFileUploadExcel}
+                className="hidden"
+              />
+            </label>
+
+            {/* BẢNG XEM TRƯỚC (PREVIEW) KHI ĐÃ ĐỌC FILE */}
+            {importedPreview.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-300">
+                  <span className="flex items-center gap-1.5 text-emerald-400">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Đã đọc được {importedPreview.length} khách mời hợp lệ:
+                  </span>
+                  <button
+                    onClick={() => {
+                      setImportedPreview([]);
+                      setImportFileName('');
+                    }}
+                    className="text-[11px] text-rose-400 hover:underline cursor-pointer"
+                  >
+                    Hủy xem trước
+                  </button>
+                </div>
+
+                <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950/70 p-2 space-y-1.5 divide-y divide-slate-800/60 text-xs">
+                  {importedPreview.slice(0, 50).map((g, idx) => (
+                    <div key={g.id || idx} className="pt-1.5 first:pt-0 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="font-medium text-white truncate block">{idx + 1}. {g.name}</span>
+                        <span className="text-[11px] text-slate-400">{g.phone}</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[10px] text-slate-300 shrink-0">
+                        {g.group}
+                      </span>
+                    </div>
+                  ))}
+                  {importedPreview.length > 50 && (
+                    <div className="text-center text-[11px] text-slate-500 py-1 font-mono">
+                      ... và {importedPreview.length - 50} khách mời khác
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TẢI FILE MẪU CHUẨN */}
+            <div className="bg-slate-950/80 rounded-xl p-3 border border-slate-800 flex items-center justify-between gap-2">
+              <div className="text-xs text-slate-400">
+                Chưa có file mẫu chuẩn? Tải file mẫu <span className="text-slate-200 font-mono">danh_sach_khach_moi.xlsx</span>:
+              </div>
+              <button 
+                type="button"
+                onClick={handleDownloadTemplate}
+                className="text-xs text-emerald-400 hover:text-emerald-300 hover:underline flex items-center gap-1 font-semibold shrink-0 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" /> Tải file mẫu
+              </button>
+            </div>
+
+            {/* HÀNG NÚT ĐIỀU HƯỚNG */}
+            <div className="flex justify-end gap-3 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsImportModalOpen(false);
+                  setImportedPreview([]);
+                  setImportFileName('');
+                }}
+                className="px-4 py-2 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
               >
                 Đóng
               </button>
+
+              {importedPreview.length > 0 && (
+                <button
+                  type="button"
+                  disabled={isImporting}
+                  onClick={handleConfirmImport}
+                  className="px-5 py-2 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  Xác Nhận Import ({importedPreview.length} Khách)
+                </button>
+              )}
             </div>
           </div>
         </div>
