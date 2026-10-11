@@ -1,0 +1,564 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #F8FAFC;
+  --color-foreground: #0F172A;
+  --font-sans: var(--font-sans-vietnam), 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-serif-vietnam), 'Lora', Georgia, serif;
+}
+
+/* ==========================================================================
+   BASE & RESET STYLES
+   ========================================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+  width: 100%;
+}
+
+body {
+  background-color: #F8FAFC;
+  color: #0F172A;
+  font-family: var(--font-sans-vietnam), 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.font-serif {
+  font-family: var(--font-serif-vietnam), 'Lora', Georgia, serif !important;
+}
+
+.font-playfair {
+  font-family: var(--font-playfair), 'Playfair Display', Georgia, serif !important;
+}
+
+.font-nunito {
+  font-family: var(--font-nunito), 'Nunito', system-ui, sans-serif !important;
+}
+
+.font-sans {
+  font-family: var(--font-sans-vietnam), 'Be Vietnam Pro', system-ui, -apple-system, sans-serif !important;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBD5E1;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8;
+}
+
+/* ==========================================================================
+   GLASSMORPHISM & SURFACE CONTAINERS
+   ========================================================================== */
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.glass-panel-dark {
+  background: var(--glass-bg-dark);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border-dark);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.glass-card-hover {
+  transition: var(--transition-smooth);
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-luxury);
+  border-color: rgba(224, 169, 109, 0.5);
+}
+
+/* ==========================================================================
+   KEYFRAME ANIMATIONS
+   ========================================================================== */
+
+@keyframes floatPetal {
+  0% {
+    transform: translateY(-10vh) rotate(0deg) translateX(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(50vh) rotate(180deg) translateX(30px);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(105vh) rotate(360deg) translateX(-20px);
+    opacity: 0.2;
+  }
+}
+
+.animate-petal {
+  position: absolute;
+  pointer-events: none;
+  animation: floatPetal 10s linear infinite;
+}
+
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: floatSlow 4s ease-in-out infinite;
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-disc {
+  animation: spinSlow 12s linear infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(212, 175, 55, 0);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s infinite;
+}
+
+@keyframes cloudDriftSlow {
+  0% {
+    transform: translateX(-6%);
+  }
+  50% {
+    transform: translateX(6%);
+  }
+  100% {
+    transform: translateX(-6%);
+  }
+}
+
+@keyframes cloudDriftReverse {
+  0% {
+    transform: translateX(5%);
+  }
+  50% {
+    transform: translateX(-5%);
+  }
+  100% {
+    transform: translateX(5%);
+  }
+}
+
+.animate-cloud-drift-1 {
+  animation: cloudDriftSlow 24s ease-in-out infinite;
+}
+
+.animate-cloud-drift-2 {
+  animation: cloudDriftReverse 18s ease-in-out infinite;
+}
+
+/* Hero Entrance Animations */
+@keyframes heroFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes beamSweep {
+  0% {
+    transform: rotate(-35deg) translateX(-30%);
+    opacity: 0.15;
+  }
+  50% {
+    transform: rotate(-15deg) translateX(30%);
+    opacity: 0.35;
+  }
+  100% {
+    transform: rotate(-35deg) translateX(-30%);
+    opacity: 0.15;
+  }
+}
+
+@keyframes trainSmoke {
+  0% {
+    transform: scale(0.8) translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: scale(1.3) translateY(-14px);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.6) translateY(-28px);
+    opacity: 0;
+  }
+}
+
+/* Hiệu ứng nhịp đập tim dồn dập (Heartbeat Pulse) cho Logo */
+@keyframes heartbeatPulse {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.4));
+  }
+  14% {
+    transform: scale(1.12);
+    filter: drop-shadow(0 0 35px rgba(56, 189, 248, 0.95)) drop-shadow(0 0 50px rgba(99, 102, 241, 0.6));
+  }
+  28% {
+    transform: scale(1.02);
+    filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.5));
+  }
+  42% {
+    transform: scale(1.16);
+    filter: drop-shadow(0 0 42px rgba(56, 189, 248, 1)) drop-shadow(0 0 65px rgba(99, 102, 241, 0.75));
+  }
+  70% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.4));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.4));
+  }
+}
+
+/* Quầng sáng nhịp thở đồng pha phía sau Logo */
+@keyframes heartbeatAura {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.3;
+  }
+  14% {
+    transform: scale(1.2);
+    opacity: 0.75;
+  }
+  28% {
+    transform: scale(1.05);
+    opacity: 0.45;
+  }
+  42% {
+    transform: scale(1.3);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(0.9);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(0.9);
+    opacity: 0.3;
+  }
+}
+
+/* Dải chạy ánh sáng vô cực trên thanh Loading bar */
+@keyframes progressShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-heartbeat-logo {
+  animation: heartbeatPulse 1.8s cubic-bezier(0.21, 0.61, 0.35, 1) infinite;
+  will-change: transform, filter;
+}
+
+.animate-heartbeat-aura {
+  animation: heartbeatAura 1.8s cubic-bezier(0.21, 0.61, 0.35, 1) infinite;
+  will-change: transform, opacity;
+}
+
+.animate-progress-shimmer {
+  animation: progressShimmer 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spinReverseSlow {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 9s linear infinite;
+}
+
+.animate-spin-reverse-slow {
+  animation: spinReverseSlow 13s linear infinite;
+}
+
+@keyframes gentleDriftTrain {
+  0%, 100% {
+    transform: translateY(0px) scale(1.02);
+  }
+  50% {
+    transform: translateY(-4px) scale(1.03);
+  }
+}
+
+.animate-hero-fade-up {
+  animation: heroFadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-hero-fade-in {
+  animation: heroFadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-beam-sweep {
+  animation: beamSweep 14s ease-in-out infinite;
+}
+
+.animate-train-drift {
+  animation: gentleDriftTrain 7s ease-in-out infinite;
+}
+
+/* Đoàn tàu chạy từ trái qua phải theo hướng đầu máy xe lửa */
+@keyframes trainRideAcross {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100vw);
+  }
+}
+
+.animate-train-ride {
+  animation: trainRideAcross 24s linear infinite;
+}
+
+.animate-smoke-puff {
+  animation: smokePuffDrift 3s ease-out infinite;
+}
+
+/* ==========================================================================
+   BUTTONS & FORM COMPONENTS
+   ========================================================================== */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-rose-gold) 100%);
+  color: #FFFFFF;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35);
+  transition: var(--transition-smooth);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.5);
+  filter: brightness(1.05);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--color-bg-surface);
+  color: var(--color-text-main);
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  border: 1px solid #E2E8F0;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.btn-secondary:hover {
+  background: var(--color-bg-light);
+  border-color: var(--color-rose-gold);
+  color: var(--color-rose-gold);
+}
+
+.input-field {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid #E2E8F0;
+  background: #FFFFFF;
+  color: var(--color-text-main);
+  font-size: 15px;
+  outline: none;
+  transition: var(--transition-smooth);
+}
+
+.input-field:focus {
+  border-color: var(--color-rose-gold);
+  box-shadow: 0 0 0 3px rgba(224, 169, 109, 0.2);
+}
+
+/* Mobile Emulator Container */
+.mobile-emulator-frame {
+  width: 375px;
+  height: 780px;
+  border-radius: 40px;
+  border: 12px solid #1E293B;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  background: #FFFFFF;
+  overflow-y: auto;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .mobile-emulator-frame {
+    width: 100%;
+    height: 100vh;
+    border: none;
+    border-radius: 0;
+  }
+}
+
+/* ==========================================================================
+   POSTER ELEMENT ANIMATIONS (TRAIN CHUG & FLAG WAVE)
+   ========================================================================== */
+
+@keyframes trainFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-3px) rotate(0.8deg);
+  }
+  50% {
+    transform: translateY(-1px) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-4px) rotate(-0.8deg);
+  }
+}
+
+@keyframes flagWave {
+  0%, 100% {
+    transform: rotate(6deg) scale(1);
+  }
+  50% {
+    transform: rotate(11deg) scale(1.04) translateY(-2px);
+  }
+}
+
+.animate-train-chug {
+  animation: trainFloat 3.5s ease-in-out infinite;
+}
+
+.animate-flag-wave {
+  animation: flagWave 2.8s ease-in-out infinite;
+}
+
+@keyframes titleFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateY(-4px) rotate(-0.5deg) scale(1.015);
+  }
+}
+
+@keyframes textPulseFloat {
+  0%, 100% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.02);
+  }
+}
+
+.animate-title-float {
+  animation: titleFloat 4s ease-in-out infinite;
+}
+
+.animate-text-float {
+  animation: textPulseFloat 3.6s ease-in-out infinite;
+}
+
+/* Custom dark transparent modal styling for Music Player Modal */
+.music-player-modal .ant-modal-content {
+  background-color: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+}
+
+.music-player-modal .ant-modal-body {
+  padding: 0 !important;
+}
+
+

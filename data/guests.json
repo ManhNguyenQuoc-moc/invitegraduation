@@ -1,0 +1,32 @@
+[
+  {
+    "id": "1791694855348",
+    "name": "Đôn Khôi",
+    "phone": "Chưa có SĐT",
+    "slug": "don-khoi-427",
+    "group": "Bạn Bè",
+    "status": "pending",
+    "attendingCount": 1,
+    "wishesCount": 0
+  },
+  {
+    "id": "1791693516880",
+    "name": "Nguyễn Quốc Mạnh",
+    "phone": "Chưa có SĐT",
+    "slug": "nguyen-quoc-manh-629",
+    "group": "Bạn Bè",
+    "status": "pending",
+    "attendingCount": 1,
+    "wishesCount": 0
+  },
+  {
+    "id": "1791692836917",
+    "name": "Nguyễn Quốc Mạnh",
+    "phone": "Chưa có SĐT",
+    "slug": "nguyen-quoc-manh-323",
+    "group": "Bạn Bè",
+    "status": "pending",
+    "attendingCount": 1,
+    "wishesCount": 0
+  }
+]

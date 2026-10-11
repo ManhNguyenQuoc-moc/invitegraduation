@@ -1,0 +1,46 @@
+[
+  {
+    "id": "steam-train-bg",
+    "title": "Tiếng Tàu Hỏa & Thiên Nhiên",
+    "artist": "Âm thanh môi trường thư giãn",
+    "url": "/music/steam-train.mp3",
+    "tag": "Thiên nhiên & Tàu hỏa",
+    "isCustom": true
+  },
+  {
+    "id": "forest-birds-bg",
+    "title": "Rừng Cây Chim Hót & Suối Reo",
+    "artist": "Âm thanh thiên nhiên",
+    "url": "/music/forest-birds.mp3",
+    "tag": "Thiên nhiên êm dịu",
+    "isCustom": true
+  },
+  {
+    "id": "piano-inspiring",
+    "title": "Inspirational Graduation Piano",
+    "artist": "Acoustic Melody",
+    "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    "tag": "Trang trọng & Sâu lắng"
+  },
+  {
+    "id": "cinematic-triumph",
+    "title": "Triumph & Future Horizons",
+    "artist": "Cinematic Symphony",
+    "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+    "tag": "Hào hùng & Khởi đầu mới"
+  },
+  {
+    "id": "acoustic-journey",
+    "title": "Youth Memories & Friends",
+    "artist": "Acoustic Strings",
+    "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
+    "tag": "Kỷ niệm thanh xuân"
+  },
+  {
+    "id": "gentle-peace",
+    "title": "Peaceful Steps to Tomorrow",
+    "artist": "Gentle Harmony",
+    "url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
+    "tag": "Ấm áp & Nhẹ nhàng"
+  }
+]
