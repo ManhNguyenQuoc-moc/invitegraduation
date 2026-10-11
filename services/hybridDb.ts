@@ -25,8 +25,16 @@ export async function saveGuestDb(guest: IGuestItem): Promise<boolean> {
   let success = false;
   if (isSupabaseConfigured && supabase) {
     try {
+      // Thử lưu đầy đủ bao gồm cả isSent (nếu bảng trên Supabase đã thêm cột)
       const { error } = await supabase.from('guests').upsert(guest, { onConflict: 'id' });
-      if (!error) success = true;
+      if (!error) {
+        success = true;
+      } else if (error.code === 'PGRST204') {
+        // Nếu cột 'isSent' chưa có trên schema cache của Supabase, tách isSent ra để lưu các trường còn lại
+        const { isSent, ...guestWithoutSent } = guest;
+        const retryRes = await supabase.from('guests').upsert(guestWithoutSent, { onConflict: 'id' });
+        if (!retryRes.error) success = true;
+      }
     } catch (e) {
       console.warn('Supabase save guest error:', e);
     }
@@ -49,7 +57,12 @@ export async function saveGuestDb(guest: IGuestItem): Promise<boolean> {
 export async function bulkInsertGuestsDb(newGuests: IGuestItem[]): Promise<boolean> {
   if (isSupabaseConfigured && supabase) {
     try {
-      await supabase.from('guests').upsert(newGuests, { onConflict: 'id' });
+      const { error } = await supabase.from('guests').upsert(newGuests, { onConflict: 'id' });
+      if (error && error.code === 'PGRST204') {
+        // Tách isSent ra nếu bảng chưa có cột isSent
+        const sanitized = newGuests.map(({ isSent, ...rest }) => rest);
+        await supabase.from('guests').upsert(sanitized, { onConflict: 'id' });
+      }
     } catch (e) {
       console.warn('Supabase bulk save error:', e);
     }

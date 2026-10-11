@@ -90,14 +90,44 @@ export default function GuestManagementPage() {
   const [newTrackTag, setNewTrackTag] = useState('Nhạc Tự Chọn');
   const [previewTrackUrl, setPreviewTrackUrl] = useState<string | null>(null);
 
-  // Load Guests from JSON DB
+  // Key lưu trữ trạng thái đã gửi thiệp (đảm bảo không bị mất dù bảng Supabase chưa có cột isSent)
+  const SENT_STORAGE_KEY = 'guest_invitation_sent_status_v1';
+
+  const getLocalSentMap = (): Record<string, boolean> => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const saved = localStorage.getItem(SENT_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const saveLocalSentStatus = (id: string, isSent: boolean) => {
+    if (typeof window === 'undefined') return;
+    try {
+      const current = getLocalSentMap();
+      current[id] = isSent;
+      localStorage.setItem(SENT_STORAGE_KEY, JSON.stringify(current));
+    } catch (e) {
+      console.warn('Lỗi lưu sent status vào LocalStorage:', e);
+    }
+  };
+
+  // Load Guests from JSON DB & Supabase, kết hợp trạng thái đã gửi
   const loadGuestsFromDb = async () => {
     try {
       setIsLoadingGuests(true);
       const res = await fetch('/api/guests');
       const data = await res.json();
+      const localSentMap = getLocalSentMap();
+
       if (data.success && Array.isArray(data.data)) {
-        setGuests(data.data);
+        const mergedGuests: IGuestItem[] = data.data.map((g: IGuestItem) => ({
+          ...g,
+          isSent: localSentMap[g.id] !== undefined ? localSentMap[g.id] : Boolean(g.isSent)
+        }));
+        setGuests(mergedGuests);
       } else {
         setGuests([]);
       }
@@ -532,6 +562,8 @@ export default function GuestManagementPage() {
 
     // Cập nhật UI ngay lập tức (optimistic UI)
     setGuests(guests.map((g) => (g.id === guest.id ? updatedGuest : g)));
+    // Lưu vào LocalStorage phòng trường hợp bảng Supabase chưa có cột isSent
+    saveLocalSentStatus(guest.id, newStatus);
 
     try {
       const res = await fetch('/api/guests', {
