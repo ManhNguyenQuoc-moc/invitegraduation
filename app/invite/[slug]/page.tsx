@@ -305,9 +305,9 @@ export default function InvitationPage() {
         placement="bottom"
         open={isVenueDrawerOpen}
         onClose={() => setIsVenueDrawerOpen(false)}
-        height="88vh"
         closable={false}
         className="venue-info-drawer"
+        style={{ height: "88vh" }}
         styles={{
           body: {
             backgroundColor: "#030A16",
