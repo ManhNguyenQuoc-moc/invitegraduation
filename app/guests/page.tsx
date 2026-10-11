@@ -161,13 +161,29 @@ export default function GuestManagementPage() {
       tag: newTrackTag.trim() || 'Nhạc Tự Chọn',
       isCustom: true
     };
-    const updated = [trackItem, ...playlist];
-    setPlaylist(updated);
-    saveActivePlaylist(updated, true);
-    setNewTrackTitle('');
-    setNewTrackArtist('');
-    setNewTrackUrl('');
-    message.success(`Đã thêm bài hát "${trackItem.title}" vào data/music.json!`);
+
+    try {
+      const res = await fetch('/api/music', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(trackItem),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const updated = [trackItem, ...playlist];
+        setPlaylist(updated);
+        saveActivePlaylist(updated, false);
+        setNewTrackTitle('');
+        setNewTrackArtist('');
+        setNewTrackUrl('');
+        message.success(`Đã thêm bài hát "${trackItem.title}" vào Supabase & CSDL thành công!`);
+      } else {
+        message.error(data.message || 'Lỗi khi lưu bài hát vào cơ sở dữ liệu');
+      }
+    } catch (err) {
+      console.error('Lỗi khi thêm bài hát:', err);
+      message.error('Không thể kết nối đến máy chủ để lưu bài hát');
+    }
   };
 
   const handleDeleteTrack = async (id: string) => {
@@ -235,10 +251,23 @@ export default function GuestManagementPage() {
           tag: 'Tệp Tải Lên',
           isCustom: true
         };
-        const updated = [trackItem, ...playlist];
-        setPlaylist(updated);
-        saveActivePlaylist(updated, true);
-        message.success(`Đã lưu "${trackItem.title}" vào danh sách phát thành công!`);
+
+        // GỌI TRỰC TIẾP API LƯU VÀO SUPABASE & CSDL HỆ THỐNG
+        const saveRes = await fetch('/api/music', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(trackItem),
+        });
+        const saveResult = await saveRes.json();
+
+        if (saveRes.ok && saveResult.success) {
+          const updated = [trackItem, ...playlist];
+          setPlaylist(updated);
+          saveActivePlaylist(updated, false); // Lưu LocalStorage & dispatch event
+          message.success(`Đã lưu "${trackItem.title}" vào cơ sở dữ liệu Supabase thành công!`);
+        } else {
+          message.error(saveResult.message || 'Lỗi khi lưu bài hát vào cơ sở dữ liệu');
+        }
       } else {
         message.error(result.message || 'Lỗi khi tải file nhạc lên máy chủ');
       }
