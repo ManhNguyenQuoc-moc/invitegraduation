@@ -13,7 +13,7 @@ export async function GET(
   const guests = await getGuestsDb();
   
   const found = guests.find((g) => g.slug === slug);
-  const guestName = found ? found.name : (slug ? 'Quý Bạn & Anh Chị' : 'Quý Bạn & Anh Chị');
+  const guestName = found ? found.name : 'Gia đình, Anh chị em & Bạn bè';
   const groupName = found ? found.group : 'Khách Quý Thân Thiết';
 
   const invitation: IInvitationDTO = {

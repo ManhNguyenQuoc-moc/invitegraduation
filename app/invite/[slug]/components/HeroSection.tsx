@@ -110,30 +110,50 @@ export const HeroSection: React.FC<IHeroSectionProps> = ({
       });
     };
 
-    // Kiểm tra và xin quyền nếu trên iOS Safari 13+
-    const enableOrientation = async () => {
-      if (
-        typeof window !== "undefined" &&
-        typeof (DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> }).requestPermission === "function"
-      ) {
+    let isListening = false;
+
+    // Kiểm tra và xin quyền nếu trên iOS Safari 13+ hoặc Android Chrome
+    const startListening = async () => {
+      if (isListening || typeof window === "undefined") return;
+
+      const doe = DeviceOrientationEvent as unknown as {
+        requestPermission?: () => Promise<string>;
+      };
+
+      if (typeof doe?.requestPermission === "function") {
         try {
-          const permission = await (DeviceOrientationEvent as unknown as { requestPermission: () => Promise<string> }).requestPermission();
-          if (permission === "granted") {
+          const perm = await doe.requestPermission();
+          if (perm === "granted") {
             window.addEventListener("deviceorientation", handleDeviceOrientation, true);
+            isListening = true;
           }
         } catch {
-          // Bỏ qua nếu chưa tương tác chạm
+          // Người dùng chưa tương tác gesture
         }
-      } else if (typeof window !== "undefined" && "DeviceOrientationEvent" in window) {
+      } else if ("DeviceOrientationEvent" in window) {
         window.addEventListener("deviceorientation", handleDeviceOrientation, true);
+        isListening = true;
       }
     };
 
-    enableOrientation();
+    // Khởi động trực tiếp
+    startListening();
+
+    // Trigger lại khi người dùng chạm vào màn hình (bắt buộc đối với iOS Safari để cấp quyền accelerometer)
+    const onUserTouch = () => {
+      startListening();
+      window.removeEventListener("touchstart", onUserTouch);
+      window.removeEventListener("click", onUserTouch);
+    };
+
+    window.addEventListener("touchstart", onUserTouch, { passive: true });
+    window.addEventListener("click", onUserTouch, { passive: true });
 
     return () => {
       if (typeof window !== "undefined") {
         window.removeEventListener("deviceorientation", handleDeviceOrientation, true);
+        window.removeEventListener("touchstart", onUserTouch);
+        window.removeEventListener("click", onUserTouch);
       }
       if (animFrame) cancelAnimationFrame(animFrame);
     };

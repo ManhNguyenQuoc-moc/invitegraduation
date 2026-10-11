@@ -217,7 +217,7 @@ export default function InvitationPage() {
   const eventTime = invitationData?.event?.event_time || "11h - 18h";
   const location = invitationData?.event?.location || "Đại học Tôn Đức Thắng";
   const theme = invitationData?.event?.theme || "CLASS OF 2026";
-  const guestName = invitationData?.name || "Quý Bạn & Anh Chị";
+  const guestName = invitationData?.name || "Gia đình, Anh chị em & Bạn bè";
   const avatarUrl = invitationData?.event?.avatar_url || "/avatar-werewolf.png";
 
   return (
